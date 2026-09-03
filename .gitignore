@@ -1,0 +1,20 @@
+# The client's own documents — his business data. Kept locally, never pushed.
+*.docx
+*.xlsx
+*.pdf
+
+# Planning and handoff notes stay local: they carry the client's real
+# names, prices and rent. Google Drive is their backup.
+*.md
+
+# Office lock files (created while a document is open)
+~$*
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Node, for later phases
+node_modules/
+.env
+.env.local

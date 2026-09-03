@@ -1,0 +1,2143 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>סטודיו לנגרות — דשבורד</title>
+<style>
+:root {
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-muted:#898781;
+  --hairline:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,0.10);
+  --accent:#2a78d6; --neg:#e34948; --track:#cde2fb; --good:#006300;
+  --shadow:0 1px 2px rgba(11,11,11,.05), 0 8px 24px -12px rgba(11,11,11,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#898781;
+    --hairline:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,0.10);
+    --accent:#3987e5; --neg:#e66767; --track:#184f95; --good:#0ca30c;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#898781;
+  --hairline:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,0.10);
+  --accent:#3987e5; --neg:#e66767; --track:#184f95; --good:#0ca30c;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+* { box-sizing: border-box; }
+/* a class with display: set would otherwise outrank the browser rule for [hidden] */
+[hidden] { display: none !important; }
+html, body { margin:0; padding:0; }
+body {
+  background: var(--plane); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+/* Numbers are LTR runs inside RTL text — isolate so signs and ₪ never reorder. */
+.num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+.app { max-width:560px; margin:0 auto; min-height:100dvh;
+  padding-bottom: calc(152px + env(safe-area-inset-bottom)); }
+
+.top { padding:20px 20px 8px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.top h1 { font-size:19px; font-weight:650; margin:0; letter-spacing:-.01em; }
+.top .sub { font-size:13px; color:var(--ink-muted); margin-top:2px; }
+.month { flex:none; font-size:13px; font-weight:550; color:var(--ink-2);
+  background:var(--surface); border:1px solid var(--ring); border-radius:999px;
+  padding:6px 13px; box-shadow:var(--shadow); }
+
+.demo-note { margin:8px 20px 0; font-size:12.5px; color:var(--ink-2);
+  background:color-mix(in srgb, var(--ink) 4%, transparent);
+  border:1px dashed var(--axis); border-radius:10px; padding:8px 12px; }
+
+.card { background:var(--surface); border:1px solid var(--ring); border-radius:16px;
+  box-shadow:var(--shadow); padding:18px; }
+section { margin:16px 20px 0; }
+.section-title { font-size:12px; font-weight:650; letter-spacing:.06em;
+  color:var(--ink-muted); margin:0 4px 10px; }
+
+/* ---------- hero: the current-account mirror ---------- */
+.hero .label { font-size:13.5px; color:var(--ink-2); }
+.hero .value { font-size:46px; font-weight:620; letter-spacing:-.025em; line-height:1.1; margin:6px 0 0; }
+.hero .asof { font-size:12px; color:var(--ink-muted); margin-top:4px; }
+.breakdown { display:grid; gap:7px; font-size:13px; color:var(--ink-2); }
+.breakdown div { display:flex; justify-content:space-between; gap:12px; }
+.breakdown .num { color:var(--ink); font-weight:550; }
+
+/* ---------- affordability check ---------- */
+.afford { margin-top:14px; padding-top:13px; border-top:1px solid var(--hairline); }
+.afford .lbl { font-size:12.5px; color:var(--ink-2); margin-bottom:8px; }
+.afford .row { display:flex; gap:10px; align-items:center; }
+input[type="number"], input[type="date"] {
+  font:inherit; font-size:14px; color:var(--ink);
+  background:var(--plane); border:1px solid var(--axis); border-radius:10px;
+  padding:8px 11px; min-width:0;
+}
+input[type="number"] { flex:1; }
+input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.afford .out { font-size:13.5px; font-weight:550; flex:1; }
+.ok { color:var(--good); } .bad { color:var(--neg); }
+
+/* ---------- forecast ---------- */
+.fc-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.fc-head .lbl { font-size:13.5px; color:var(--ink-2); }
+.fc-value { font-size:34px; font-weight:620; letter-spacing:-.02em; margin:12px 0 0; }
+.fc-sub { font-size:12.5px; color:var(--ink-muted); }
+.fc-list { list-style:none; margin:14px 0 0; padding:13px 0 0; border-top:1px solid var(--hairline);
+  display:grid; gap:9px; font-size:13px; }
+.fc-list li { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+.fc-list .d { color:var(--ink-muted); font-size:11.5px; }
+.fc-list .a { font-weight:550; }
+.plus { color:var(--accent); } .minus { color:var(--neg); }
+.fc-quote { margin-top:13px; padding:10px 12px; border:1px dashed var(--axis);
+  border-radius:10px; font-size:12.5px; color:var(--ink-2); }
+
+/* ---------- tiles + meters ---------- */
+.tiles { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.tile .label { font-size:12.5px; color:var(--ink-2); }
+.tile .value { font-size:25px; font-weight:620; letter-spacing:-.02em; margin-top:2px; }
+.tile .of { font-size:15px; color:var(--ink-muted); font-weight:500; }
+.tile .foot { font-size:12px; color:var(--ink-muted); margin-top:5px; }
+.meter { margin-top:10px; height:8px; border-radius:999px; background:var(--track); overflow:hidden; }
+.meter > i { display:block; height:100%; border-radius:999px; background:var(--accent); }
+
+/* ---------- list rows ---------- */
+.lrow { display:flex; justify-content:space-between; gap:12px; align-items:baseline;
+  padding:11px 0; border-bottom:1px solid var(--hairline); }
+.lrow:last-child { border-bottom:0; }
+.lname { font-size:13.5px; font-weight:550; }
+.lclient { font-size:11.5px; color:var(--ink-muted); font-weight:400; }
+.ldate { font-size:11.5px; color:var(--ink-muted); margin-top:2px; }
+.lamt { font-size:14px; font-weight:620; white-space:nowrap; }
+.total { display:flex; justify-content:space-between; margin-top:12px; padding-top:12px;
+  border-top:1px solid var(--hairline); font-size:13.5px; font-weight:620; }
+.chip { font-size:11px; color:var(--ink-2); background:color-mix(in srgb, var(--ink) 5%, transparent);
+  border-radius:999px; padding:3px 9px; white-space:nowrap; }
+
+.pipe { display:grid; gap:9px; }
+.pipe .p-row { display:flex; align-items:center; gap:10px; font-size:13.5px; }
+.pipe .dot { width:8px; height:8px; border-radius:999px; background:var(--accent); flex:none; }
+.pipe .dot.idle { background:var(--axis); }
+.pipe .p-name { font-weight:550; }
+.pipe .p-stage { margin-inline-start:auto; }
+
+/* ---------- chrome ---------- */
+.tabs { position:fixed; bottom:0; left:0; right:0; max-width:560px; margin:0 auto;
+  background:color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--ring); display:grid; grid-template-columns:repeat(5,1fr);
+  padding-bottom:env(safe-area-inset-bottom); }
+.tabs button { font:inherit; font-size:10.5px; font-weight:550; background:none; border:0;
+  cursor:pointer; color:var(--ink-muted); padding:9px 2px 10px; display:grid; gap:3px; justify-items:center; }
+.tabs button[aria-current="page"] { color:var(--accent); }
+.tabs svg { width:21px; height:21px; stroke-width:1.7; fill:none; stroke:currentColor;
+  stroke-linecap:round; stroke-linejoin:round; }
+
+.fab { position:fixed; bottom:calc(78px + env(safe-area-inset-bottom));
+  inset-inline-end:max(20px, calc(50% - 280px + 20px));
+  width:52px; height:52px; border-radius:999px; border:0; cursor:pointer; z-index:5;
+  background:var(--accent); color:#fff; font-size:27px; line-height:1; font-weight:300;
+  box-shadow:0 4px 16px -2px color-mix(in srgb, var(--accent) 55%, transparent); }
+
+.toast { position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--surface); font-size:13px; padding:9px 16px;
+  border-radius:999px; opacity:0; pointer-events:none; transition:opacity .18s ease;
+  z-index:10; white-space:nowrap; }
+.toast.show { opacity:1; }
+
+/* ---------- screens: one visible at a time (tiny router, no framework) ---------- */
+.screen[hidden] { display:none; }
+.back { font:inherit; font-size:13px; font-weight:550; color:var(--accent);
+  background:none; border:0; padding:0 0 4px; cursor:pointer; }
+
+.tiles-3 { grid-template-columns:repeat(3,1fr); gap:8px; }
+.tiles-3 .card { padding:13px 11px; }
+.tiles-3 .label { font-size:11.5px; }
+.tiles-3 .value { font-size:17px; margin-top:3px; }
+
+/* a project row on the dashboard is a link into that project */
+button.p-row { font:inherit; color:inherit; background:none; border:0; width:100%;
+  padding:6px 0; text-align:start; cursor:pointer; }
+button.p-row:hover .p-name { text-decoration:underline; }
+
+/* ---------- transaction rows ---------- */
+.tx-end { display:flex; align-items:center; gap:4px; }
+.tx-acts { display:flex; gap:2px; }
+.tx-acts button { background:none; border:0; cursor:pointer; color:var(--ink-muted);
+  padding:6px; border-radius:8px; line-height:0; }
+.tx-acts button:hover { color:var(--ink); background:color-mix(in srgb, var(--ink) 6%, transparent); }
+.tx-acts svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7;
+  stroke-linecap:round; stroke-linejoin:round; }
+.empty { font-size:13px; color:var(--ink-muted); text-align:center; padding:16px 0; }
+
+/* ---------- bottom sheet: add / edit one transaction ---------- */
+.scrim { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:8; }
+.sheet { position:fixed; z-index:9; bottom:0; left:0; right:0; max-width:560px; margin:0 auto;
+  background:var(--surface); border:1px solid var(--ring); border-radius:20px 20px 0 0;
+  padding:18px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 32px -12px rgba(0,0,0,.45); }
+.sheet h2 { font-size:16px; font-weight:650; margin:0 0 14px; }
+.seg { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:var(--plane);
+  border:1px solid var(--axis); border-radius:12px; padding:4px; margin-bottom:13px; }
+.seg button { font:inherit; font-size:13.5px; font-weight:550; border:0; border-radius:9px;
+  padding:8px; cursor:pointer; background:none; color:var(--ink-2); }
+.seg button[aria-pressed="true"] { background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+.field { display:grid; gap:5px; margin-bottom:11px; }
+.field label { font-size:12px; color:var(--ink-2); }
+.field input, .field select { font:inherit; font-size:14px; color:var(--ink); width:100%;
+  background:var(--plane); border:1px solid var(--axis); border-radius:10px; padding:9px 11px; }
+.sheet-acts { display:flex; gap:10px; margin-top:16px; }
+.btn { font:inherit; font-size:14.5px; font-weight:600; flex:1; cursor:pointer;
+  border:1px solid var(--ring); border-radius:12px; padding:11px;
+  background:var(--plane); color:var(--ink); }
+.btn.primary { background:var(--accent); color:#fff; border-color:transparent; }
+
+
+/* ---------- quote builder ---------- */
+.add-line { margin-top:10px; border-style:dashed; font-weight:550; font-size:13.5px; width:100%; }
+.line-add { display:grid; grid-template-columns:1fr 52px 74px auto; gap:6px; align-items:center;
+  margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); }
+.line-add input { font:inherit; font-size:13.5px; color:var(--ink); width:100%; min-width:0;
+  background:var(--plane); border:1px solid var(--axis); border-radius:9px; padding:8px 9px; }
+.line-add button { font:inherit; font-size:18px; font-weight:400; line-height:1; cursor:pointer;
+  border:0; border-radius:9px; padding:0 12px; height:36px; background:var(--accent); color:#fff; }
+.brk { display:grid; gap:7px; font-size:13px; color:var(--ink-2); }
+.brk div { display:flex; justify-content:space-between; gap:12px; }
+.brk .num { color:var(--ink); font-weight:550; }
+.brk .sum { margin-top:4px; padding-top:9px; border-top:1px solid var(--hairline);
+  font-size:13.5px; font-weight:620; color:var(--ink); }
+.q-sug { display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  margin:14px 0 4px; padding-top:13px; border-top:1px solid var(--hairline); font-size:13.5px; color:var(--ink-2); }
+.q-sug .num { font-size:24px; font-weight:620; color:var(--ink); letter-spacing:-.02em; }
+.q-verdict { font-size:13.5px; font-weight:550; margin:2px 0 16px; }
+.q-verdict .why { display:block; font-weight:400; font-size:12.5px; color:var(--ink-2); margin-top:3px; }
+
+
+/* ---------- projects list ---------- */
+.filters { display:flex; gap:7px; margin:0 0 12px; flex-wrap:wrap; }
+.filters button { font:inherit; font-size:12.5px; font-weight:550; cursor:pointer;
+  color:var(--ink-2); background:var(--surface); border:1px solid var(--ring);
+  border-radius:999px; padding:6px 13px; }
+.filters button[aria-pressed="true"] { background:var(--accent); color:#fff; border-color:transparent; }
+
+button.prow { font:inherit; color:inherit; text-align:start; width:100%; cursor:pointer;
+  background:none; border:0; border-bottom:1px solid var(--hairline); padding:13px 0; display:block; }
+button.prow:last-child { border-bottom:0; }
+.prow-top { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+.prow .steps { display:flex; gap:3px; margin-top:9px; }
+.prow .steps i { flex:1; height:4px; border-radius:999px; background:var(--track); }
+.prow .steps i.done { background:var(--accent); }
+.prow .steps i.done.fin { background:var(--good); }
+.prow .stage { font-size:11.5px; color:var(--ink-muted); margin-top:6px; display:block; }
+
+
+/* ---------- ledger ---------- */
+.mgroup { margin-bottom:14px; }
+.mhead { display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  margin:0 4px 8px; font-size:12.5px; font-weight:650; color:var(--ink-2); }
+.mhead .msum { font-weight:550; color:var(--ink-muted); font-size:11.5px; }
+.lproj { font-size:11.5px; color:var(--ink-muted); }
+.lrow .chip { margin-inline-start:6px; }
+
+
+/* ---------- project card: tab strip + panels ---------- */
+.ptabs { display:flex; gap:7px; overflow-x:auto; scrollbar-width:none;
+  margin:0 20px 4px; padding-bottom:2px; }
+.ptabs::-webkit-scrollbar { display:none; }
+.ptabs button { font:inherit; font-size:12.5px; font-weight:550; white-space:nowrap; cursor:pointer;
+  color:var(--ink-2); background:var(--surface); border:1px solid var(--ring);
+  border-radius:999px; padding:7px 14px; }
+.ptabs button[aria-pressed="true"] { background:var(--accent); color:#fff; border-color:transparent; }
+.ptab[hidden] { display:none; }
+
+/* pipeline stepper */
+.stepper .now { font-size:15px; font-weight:620; }
+.stepper .pos { font-size:12px; color:var(--ink-muted); margin-top:2px; }
+.stepper .steps { display:flex; gap:3px; margin:12px 0 14px; }
+.stepper .steps i { flex:1; height:5px; border-radius:999px; background:var(--track); }
+.stepper .steps i.done { background:var(--accent); }
+.stepper .steps i.done.fin { background:var(--good); }
+.stepper .acts { display:flex; gap:10px; }
+.btn:disabled { opacity:.45; cursor:default; }
+
+.info-rows { display:grid; gap:9px; font-size:13.5px; }
+.info-rows div { display:flex; justify-content:space-between; gap:12px; }
+.info-rows span:first-child { color:var(--ink-2); }
+
+/* materials: planned vs actual is the whole point of this table */
+.mat { padding:12px 0; border-bottom:1px solid var(--hairline); }
+.mat:last-child { border-bottom:0; }
+.mat-top { display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+.dims { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; margin-top:7px;
+  font-size:12px; color:var(--ink-2); }
+.dims b { font-weight:550; color:var(--ink); }
+.warn { display:inline-block; margin-top:7px; font-size:11.5px; font-weight:550;
+  color:var(--neg); background:color-mix(in srgb, var(--neg) 12%, transparent);
+  border-radius:999px; padding:3px 10px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.mini { font:inherit; font-size:13px; color:var(--ink); width:100%; min-width:0;
+  background:var(--plane); border:1px solid var(--axis); border-radius:9px; padding:8px 9px; }
+.addbox { margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); display:grid; gap:6px; }
+.addbox .lbl { font-size:11.5px; color:var(--ink-muted); }
+
+/* lessons + journal */
+.tags { display:flex; gap:5px; flex-wrap:wrap; margin-top:7px; }
+.entry { padding:12px 0; border-bottom:1px solid var(--hairline); font-size:13.5px; line-height:1.55; }
+.entry:last-child { border-bottom:0; }
+.entry .when { font-size:11.5px; color:var(--ink-muted); margin-bottom:4px; }
+textarea.mini { resize:vertical; min-height:66px; font-family:inherit; }
+
+/* gallery */
+.gal { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.gal figure { margin:0; position:relative; }
+.gal .ph { aspect-ratio:1; border-radius:12px; background:color-mix(in srgb, var(--ink) 7%, transparent);
+  border:1px solid var(--ring); display:grid; place-items:center; font-size:22px; }
+.gal figcaption { font-size:11px; color:var(--ink-muted); margin-top:4px; text-align:center; }
+.gal .star { position:absolute; inset-block-start:6px; inset-inline-end:6px; cursor:pointer;
+  border:0; background:color-mix(in srgb, var(--surface) 85%, transparent); border-radius:999px;
+  width:26px; height:26px; font-size:13px; line-height:1; padding:0; }
+.gal .star[aria-pressed="true"] { color:#fff; background:var(--accent); }
+
+
+/* ---------- more hub + libraries ---------- */
+.menu button { font:inherit; color:inherit; background:none; border:0; cursor:pointer;
+  width:100%; text-align:start; padding:14px 0; border-bottom:1px solid var(--hairline);
+  display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.menu button:last-child { border-bottom:0; }
+.menu .mtitle { display:block; font-size:14.5px; font-weight:550; }
+.menu .mdesc { display:block; font-size:12px; color:var(--ink-muted); margin-top:3px; }
+.menu .chev { color:var(--ink-muted); font-size:16px; }
+.search { width:100%; font:inherit; font-size:14px; color:var(--ink); margin-bottom:12px;
+  background:var(--surface); border:1px solid var(--axis); border-radius:12px; padding:10px 13px; }
+a.tel { color:var(--accent); text-decoration:none; font-weight:550;
+  display:inline-flex; align-items:center; gap:5px; }
+a.tel svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round; }
+.note { font-size:12.5px; color:var(--ink-2); margin-top:6px; line-height:1.5; }
+
+
+/* quote decision buttons */
+.qacts { display:flex; gap:8px; margin-top:10px; }
+.qacts button { font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; flex:1;
+  border-radius:10px; padding:8px; border:1px solid var(--ring); background:var(--plane); color:var(--ink); }
+.qacts button.win { background:var(--accent); color:#fff; border-color:transparent; }
+.qrow { padding:13px 0; border-bottom:1px solid var(--hairline); }
+.qrow:last-child { border-bottom:0; }
+.chip.lost { color:var(--neg); background:color-mix(in srgb, var(--neg) 12%, transparent); }
+
+
+/* workshop days on the project card */
+.days { display:flex; align-items:center; gap:10px; margin-top:12px; }
+.days input { width:74px; font:inherit; font-size:16px; font-weight:620; text-align:center;
+  color:var(--ink); background:var(--plane); border:1px solid var(--axis);
+  border-radius:10px; padding:8px; }
+.days .step { width:38px; height:38px; border-radius:10px; cursor:pointer; font-size:19px;
+  line-height:1; border:1px solid var(--ring); background:var(--plane); color:var(--ink); }
+.days .unit { font-size:13px; color:var(--ink-2); }
+
+
+/* the balance itself is the disclosure control for its own breakdown */
+button.hero-val { font:inherit; color:inherit; background:none; border:0; padding:0;
+  cursor:pointer; display:flex; align-items:baseline; gap:9px; text-align:start; }
+button.hero-val .chev { font-size:15px; color:var(--ink-muted); transition:transform .15s ease; }
+button.hero-val[aria-expanded="true"] .chev { transform:rotate(180deg); }
+.asof-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:4px; }
+.linkbtn { font:inherit; font-size:12px; font-weight:550; color:var(--accent);
+  background:none; border:0; padding:2px 0; cursor:pointer; }
+
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ================= SCREEN 1: dashboard ================= -->
+<div class="screen" id="s-dashboard">
+
+  <header class="top">
+    <div>
+      <h1>סטודיו לנגרות אומנותית</h1>
+      <div class="sub">דשבורד מנהל</div>
+    </div>
+    <div class="month">אוגוסט 2026</div>
+  </header>
+
+  <p class="demo-note">
+    אב־טיפוס להמחשה בלבד. הנתונים מומצאים — נועדו להראות איך המערכת נראית ומתנהגת כשיש כמה לקוחות ופרויקטים במקביל.
+  </p>
+
+  <!-- Hero: mirrors the business current account. -->
+  <section>
+    <div class="card hero">
+      <div class="label">יתרה בחשבון העסק (עו״ש)</div>
+      <button class="hero-val value" type="button" id="heroToggle">
+        <span class="num" id="heroValue"></span><span class="chev">‹</span>
+      </button>
+      <div class="asof-row">
+        <span class="asof" id="heroAsOf"></span>
+        <button class="linkbtn" type="button" id="reconToggle">התאמה לבנק</button>
+      </div>
+
+      <div class="afford" id="reconBox" hidden>
+        <div class="lbl">הקלד את היתרה שמופיעה באפליקציה של הבנק</div>
+        <div class="row">
+          <input type="number" id="bankReal" inputmode="numeric" placeholder="יתרה אמיתית" aria-label="היתרה בפועל בחשבון הבנק">
+          <button class="btn primary" type="button" id="bankSync" style="flex:0 0 auto">עדכון</button>
+        </div>
+      </div>
+
+      <div class="afford">
+        <div class="lbl">כמה נשאר אחרי ההוצאה?</div>
+        <div class="row">
+          <input type="number" id="spend" inputmode="numeric" placeholder="סכום בשקלים" aria-label="סכום ההוצאה המתוכננת">
+          <span class="out" id="affordOut"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Forecast to a chosen date. -->
+  <section>
+    <div class="card">
+      <div class="fc-head">
+        <span class="lbl">כמה כסף יהיה לי עד תאריך</span>
+        <input type="date" id="until" value="2026-09-30" aria-label="תאריך יעד לתחזית">
+      </div>
+      <div class="fc-value"><span class="num" id="fcValue">8,886 ₪</span></div>
+      <div class="fc-sub" id="fcSub">יתרה צפויה · הערכה בלבד</div>
+
+      <ul class="fc-list" id="fcList"></ul>
+      <div class="fc-quote" id="fcQuote"></div>
+    </div>
+  </section>
+
+  <!-- Workshop days, weekly and monthly. -->
+  <section>
+    <div class="tiles">
+      <div class="card tile">
+        <div class="label">ימי סדנה השבוע</div>
+        <div class="value"><span class="num">1</span> <span class="of">מתוך 2</span></div>
+        <div class="meter"><i style="width:50%"></i></div>
+        <div class="foot">נותר יום אחד השבוע</div>
+      </div>
+      <div class="card tile">
+        <div class="label">ימי סדנה החודש</div>
+        <div class="value"><span class="num" id="wsUsed"></span> <span class="of" id="wsCap"></span></div>
+        <div class="meter"><i id="wsBar"></i></div>
+        <div class="foot" id="wsFoot"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Receivables by project and expected collection date. -->
+  <section>
+    <div class="section-title">יתרות לגבייה</div>
+    <div class="card" id="receivables"></div>
+  </section>
+
+  <!-- Pending quotes — same shape, but explicitly uncertain. -->
+  <section>
+    <div class="section-title">הצעות מחיר ממתינות</div>
+    <div class="card" id="quotes"></div>
+  </section>
+
+  <section>
+    <div class="section-title">פרויקטים פעילים</div>
+    <div class="card pipe" id="pipeline"></div>
+  </section>
+
+</div><!-- /s-dashboard -->
+
+<!-- ================= SCREEN 2: transactions of one project ================= -->
+<div class="screen" id="s-tx" hidden>
+
+  <header class="top">
+    <div>
+      <button class="back" data-back>→ חזרה לדשבורד</button>
+      <h1 id="txTitle"></h1>
+      <div class="sub" id="txSub"></div>
+    </div>
+    <div class="month" id="txStage"></div>
+  </header>
+
+  <div class="ptabs" id="ptabs">
+    <button type="button" data-ptab="pt-info"      aria-pressed="true">פרטים</button>
+    <button type="button" data-ptab="pt-money"     aria-pressed="false">כספים</button>
+    <button type="button" data-ptab="pt-materials" aria-pressed="false">חומרים</button>
+    <button type="button" data-ptab="pt-lessons"   aria-pressed="false">לקחים</button>
+    <button type="button" data-ptab="pt-journal"   aria-pressed="false">יומן אומן</button>
+    <button type="button" data-ptab="pt-media"     aria-pressed="false">גלריה</button>
+  </div>
+
+  <!-- tab 1: client details + where the job stands in the 9-stage pipeline -->
+  <div class="ptab" id="pt-info">
+    <section>
+      <div class="card stepper">
+        <div class="now" id="stName"></div>
+        <div class="pos" id="stPos"></div>
+        <div class="steps" id="stBars"></div>
+        <div class="acts">
+          <button class="btn primary" type="button" id="stNext">שלב הבא</button>
+          <button class="btn" type="button" id="stPrev">חזרה שלב</button>
+        </div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">ימי סדנה וזמן</div>
+      <div class="card">
+        <div class="info-rows" id="wsRows"></div>
+        <div class="days">
+          <button class="step" type="button" id="wsMinus" aria-label="פחות יום סדנה">−</button>
+          <input id="wsDays" type="number" inputmode="numeric" aria-label="ימי סדנה שנוצלו">
+          <button class="step" type="button" id="wsPlus" aria-label="עוד יום סדנה">+</button>
+          <span class="unit">ימי סדנה שנוצלו בפרויקט</span>
+        </div>
+        <div class="note" id="wsNote"></div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">לקוח ותאריכים</div>
+      <div class="card"><div class="info-rows" id="infoRows"></div></div>
+    </section>
+  </div>
+
+  <!-- tab 2: money (was its own screen) -->
+  <div class="ptab" id="pt-money" hidden>
+  <!-- The three numbers that say where this project stands. -->
+  <section>
+    <div class="tiles tiles-3">
+      <div class="card tile">
+        <div class="label">התקבל</div>
+        <div class="value"><span class="num" id="txIn"></span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">הוצאות</div>
+        <div class="value"><span class="num" id="txOut"></span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">מאזן</div>
+        <div class="value"><span class="num" id="txBal"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">תנועות בפרויקט</div>
+    <div class="card" id="txList"></div>
+  </section>
+
+  </div><!-- /pt-money -->
+
+  <!-- tab 3: materials — planned vs. actual, the reason this table exists -->
+  <div class="ptab" id="pt-materials" hidden>
+    <section>
+      <div class="section-title">חומרים — מתוכנן מול בפועל</div>
+      <div class="card">
+        <div id="matList"></div>
+        <div class="addbox">
+          <div class="lbl">הוספת חומר</div>
+          <input class="mini" id="maName" type="text" placeholder="סוג עץ / רכיב">
+          <div class="grid3">
+            <input class="mini" id="maPlanT" type="number" inputmode="numeric" placeholder="עובי מתוכנן">
+            <input class="mini" id="maActT"  type="number" inputmode="numeric" placeholder="עובי בפועל">
+            <input class="mini" id="maCost"  type="number" inputmode="numeric" placeholder="עלות ₪">
+          </div>
+          <input class="mini" id="maSupplier" type="text" placeholder="ספק">
+          <button class="btn primary" type="button" id="maAdd">הוספה</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- tab 4: technical lessons, tagged for the cross-project library -->
+  <div class="ptab" id="pt-lessons" hidden>
+    <section>
+      <div class="section-title">לקחים טכניים</div>
+      <div class="card">
+        <div id="lesList"></div>
+        <div class="addbox">
+          <div class="lbl">לקח חדש</div>
+          <textarea class="mini" id="leText" placeholder="מה קרה, ומה עושים אחרת בפעם הבאה"></textarea>
+          <input class="mini" id="leTags" type="text" placeholder="תגיות, מופרדות בפסיק — מחסן_עצים, חיבורים">
+          <button class="btn primary" type="button" id="leAdd">שמירת לקח</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- tab 5: creator's journal — the portfolio/social raw material -->
+  <div class="ptab" id="pt-journal" hidden>
+    <section>
+      <div class="section-title">יומן אומן</div>
+      <div class="card">
+        <div id="jouList"></div>
+        <div class="addbox">
+          <div class="lbl">רשומה חדשה — למה יצרתי את זה, ממה נהניתי, מה למדתי על עצמי</div>
+          <textarea class="mini" id="joText" placeholder="כתוב חופשי"></textarea>
+          <button class="btn primary" type="button" id="joAdd">שמירת רשומה</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- tab 6: media by phase, with a portfolio flag -->
+  <div class="ptab" id="pt-media" hidden>
+    <section>
+      <div class="section-title">גלריית תהליך</div>
+      <div class="card">
+        <div id="galList"></div>
+        <button class="btn add-line" type="button" id="galAdd">+ העלאת תמונה</button>
+      </div>
+    </section>
+  </div>
+
+</div><!-- /s-tx -->
+
+<!-- ================= SCREEN 4: projects list ================= -->
+<div class="screen" id="s-projects" hidden>
+
+  <header class="top">
+    <div>
+      <button class="back" data-back>→ חזרה לדשבורד</button>
+      <h1>פרויקטים</h1>
+      <div class="sub" id="prSub"></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="filters" id="prFilters">
+      <button type="button" data-filter="active" aria-pressed="true">פעילים</button>
+      <button type="button" data-filter="done"   aria-pressed="false">הושלמו</button>
+      <button type="button" data-filter="all"    aria-pressed="false">הכל</button>
+    </div>
+    <div class="card" id="prList"></div>
+    <button class="btn add-line" type="button" id="prNew">+ פרויקט חדש</button>
+  </section>
+
+</div><!-- /s-projects -->
+
+<!-- ================= SCREEN 5: ledger — every transaction ================= -->
+<div class="screen" id="s-ledger" hidden>
+
+  <header class="top">
+    <div>
+      <button class="back" data-back>→ חזרה לדשבורד</button>
+      <h1>תנועות</h1>
+      <div class="sub" id="ledSub"></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-title">תזרים מזומנים</div>
+    <div class="card">
+      <div class="breakdown">
+        <div><span>יתרת פתיחה · 01/05/2026</span> <span class="num" id="heroOpening"></span></div>
+        <div><span>התקבל מלקוחות</span> <span class="num">11,000 ₪</span></div>
+        <div><span>הון עצמי שהוזרם</span> <span class="num">7,200 ₪</span></div>
+        <div><span>סך ההוצאות</span> <span class="num">−13,114 ₪</span></div>
+        <div id="heroAdjRow" hidden><span>התאמות לבנק</span> <span class="num" id="heroAdj"></span></div>
+      </div>
+      <div class="total"><span>היתרה בחשבון</span><span class="num" id="ledBalance"></span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="filters" id="ledFilters">
+      <button type="button" data-lfilter="all" aria-pressed="true">הכל</button>
+      <button type="button" data-lfilter="in"  aria-pressed="false">הכנסות</button>
+      <button type="button" data-lfilter="out" aria-pressed="false">הוצאות</button>
+    </div>
+    <div id="ledList"></div>
+  </section>
+
+</div><!-- /s-ledger -->
+
+<!-- ================= SCREEN 7: "more" hub ================= -->
+<div class="screen" id="s-more" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back>→ חזרה לדשבורד</button>
+      <h1>עוד</h1>
+      <div class="sub">לקוחות, ספקים, ידע והגדרות</div>
+    </div>
+  </header>
+  <section>
+    <div class="card menu">
+      <button type="button" data-goto="s-clients">
+        <span><span class="mtitle">לקוחות</span><span class="mdesc" id="mnClients"></span></span>
+        <span class="chev">‹</span>
+      </button>
+      <button type="button" data-goto="s-suppliers">
+        <span><span class="mtitle">ספקים</span><span class="mdesc" id="mnSuppliers"></span></span>
+        <span class="chev">‹</span>
+      </button>
+      <button type="button" data-goto="s-lessons">
+        <span><span class="mtitle">ספריית לקחים</span><span class="mdesc" id="mnLessons"></span></span>
+        <span class="chev">‹</span>
+      </button>
+      <button type="button" data-goto="s-settings">
+        <span><span class="mtitle">הגדרות</span><span class="mdesc">שכירות, ימי סדנה, תעריף יום, יתרת פתיחה</span></span>
+        <span class="chev">‹</span>
+      </button>
+    </div>
+  </section>
+</div><!-- /s-more -->
+
+<!-- ================= SCREEN 8: clients ================= -->
+<div class="screen" id="s-clients" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-more">→ חזרה לעוד</button>
+      <h1>לקוחות</h1>
+      <div class="sub" id="clSub"></div>
+    </div>
+  </header>
+  <section><div class="card" id="clList"></div></section>
+</div><!-- /s-clients -->
+
+<!-- ================= SCREEN 9: one client ================= -->
+<div class="screen" id="s-client" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-clients">→ חזרה ללקוחות</button>
+      <h1 id="ccName"></h1>
+      <div class="sub" id="ccSub"></div>
+    </div>
+  </header>
+  <section>
+    <div class="card"><div class="info-rows" id="ccInfo"></div></div>
+  </section>
+  <section>
+    <div class="section-title">הפרויקטים שלו</div>
+    <div class="card" id="ccProjects"></div>
+  </section>
+</div><!-- /s-client -->
+
+<!-- ================= SCREEN 10: suppliers ================= -->
+<div class="screen" id="s-suppliers" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-more">→ חזרה לעוד</button>
+      <h1>ספקים</h1>
+      <div class="sub">מחסני עצים, פרזול, גימורים — עם הערות אישיות</div>
+    </div>
+  </header>
+  <section>
+    <div class="card">
+      <div id="supList"></div>
+      <div class="addbox">
+        <div class="lbl">ספק חדש</div>
+        <input class="mini" id="suName" type="text" placeholder="שם הספק">
+        <input class="mini" id="suPhone" type="text" placeholder="טלפון">
+        <textarea class="mini" id="suNote" placeholder="הערה אישית — איכות, אמינות מידות, זמני אספקה"></textarea>
+        <button class="btn primary" type="button" id="suAdd">הוספת ספק</button>
+      </div>
+    </div>
+  </section>
+</div><!-- /s-suppliers -->
+
+<!-- ================= SCREEN 11: lessons library ================= -->
+<div class="screen" id="s-lessons" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-more">→ חזרה לעוד</button>
+      <h1>ספריית לקחים</h1>
+      <div class="sub">כל הלקחים מכל הפרויקטים</div>
+    </div>
+  </header>
+  <section>
+    <input class="search" id="llSearch" type="search" placeholder="חיפוש לפי טקסט או תגית">
+    <div class="card" id="llList"></div>
+  </section>
+</div><!-- /s-lessons -->
+
+<!-- ================= SCREEN 12: settings ================= -->
+<div class="screen" id="s-settings" hidden>
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-more">→ חזרה לעוד</button>
+      <h1>הגדרות</h1>
+      <div class="sub">המספרים שהמערכת מחשבת לפיהם</div>
+    </div>
+  </header>
+  <section>
+    <div class="card">
+      <div class="field">
+        <label for="seOpening">יתרת פתיחה בחשבון (₪)</label>
+        <input id="seOpening" type="number" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="seRent">שכירות חודשית (₪)</label>
+        <input id="seRent" type="number" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="seDays">ימי סדנה בחודש</label>
+        <input id="seDays" type="number" inputmode="numeric">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="seRate">תעריף ליום עבודה (₪)</label>
+        <input id="seRate" type="number" inputmode="numeric">
+      </div>
+      <div class="note" id="seNote"></div>
+    </div>
+  </section>
+</div><!-- /s-settings -->
+
+<!-- ================= SCREEN 6: quotes list ================= -->
+<div class="screen" id="s-quotes" hidden>
+
+  <header class="top">
+    <div>
+      <button class="back" data-back>→ חזרה לדשבורד</button>
+      <h1>הצעות מחיר</h1>
+      <div class="sub" id="qlSub"></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="card" id="qlList"></div>
+    <button class="btn add-line" type="button" id="qlNew">+ הצעה חדשה</button>
+  </section>
+
+</div><!-- /s-quotes -->
+
+<!-- ================= SCREEN 3: quote builder ================= -->
+<div class="screen" id="s-quote" hidden>
+
+  <header class="top">
+    <div>
+      <button class="back" data-back="s-quotes">→ חזרה להצעות מחיר</button>
+      <h1>הצעת מחיר</h1>
+      <div class="sub">קודם מחשבים עלות, רק אחר כך קובעים מחיר</div>
+    </div>
+  </header>
+
+  <section>
+    <div class="card">
+      <div class="field">
+        <label for="qName">שם הפרויקט</label>
+        <input id="qName" type="text" value="שולחן אוכל" placeholder="שולחן אוכל">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="qClient">לקוח</label>
+        <input id="qClient" type="text" value="דנה כהן" placeholder="שם הלקוח">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">חומרים ורכש</div>
+    <div class="card">
+      <div id="qItems"></div>
+      <div class="line-add">
+        <input id="qiDesc" type="text" placeholder="תיאור">
+        <input id="qiQty"  type="number" inputmode="numeric" placeholder="יח׳">
+        <input id="qiUnit" type="number" inputmode="numeric" placeholder="₪ ליח׳">
+        <button type="button" id="qiAdd" aria-label="הוספת שורה">+</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">עבודה ותקורה</div>
+    <div class="card">
+      <div class="field">
+        <label for="qDays">ימי סדנה מתוכננים</label>
+        <input id="qDays" type="number" inputmode="numeric" value="6">
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label for="qRate">תעריף ליום עבודה (₪)</label>
+        <input id="qRate" type="number" inputmode="numeric" value="450">
+      </div>
+      <div class="brk">
+        <div><span>עלות העבודה שלך</span> <span class="num" id="qLabor"></span></div>
+        <div><span>תקורה — חלק יחסי בשכירות</span> <span class="num" id="qOh"></span></div>
+      </div>
+      <div class="fc-quote" id="qOhNote" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">מחיר</div>
+    <div class="card">
+      <div class="brk">
+        <div><span>חומרים ורכש</span> <span class="num" id="sMat"></span></div>
+        <div><span>עבודה</span> <span class="num" id="sLabor"></span></div>
+        <div><span>תקורה</span> <span class="num" id="sOh"></span></div>
+        <div class="sum"><span>סך העלות</span> <span class="num" id="sCost"></span></div>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <label for="qMarkup">רווח רצוי (%)</label>
+        <input id="qMarkup" type="number" inputmode="numeric" value="15">
+      </div>
+
+      <div class="q-sug"><span>מחיר מוצע</span> <span class="num" id="qSuggest"></span></div>
+
+      <div class="field">
+        <label for="qPrice">מחיר ללקוח (₪) — אפשר לשנות</label>
+        <input id="qPrice" type="number" inputmode="numeric">
+      </div>
+
+      <div class="q-verdict" id="qVerdict"></div>
+      <button class="btn primary" type="button" id="qSave">שמירה כהצעה ממתינה</button>
+    </div>
+  </section>
+
+</div><!-- /s-quote -->
+
+</div>
+
+<button class="fab" id="fab" aria-label="הזנה מהירה של הכנסה או הוצאה">+</button>
+
+<nav class="tabs">
+  <button data-tab="s-dashboard" aria-current="page">
+    <svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    דשבורד
+  </button>
+  <button data-tab="s-projects">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>
+    פרויקטים
+  </button>
+  <button data-tab="s-ledger">
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    תנועות
+  </button>
+  <button data-tab="s-quotes">
+    <svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h7M9 17h5"/></svg>
+    הצעות מחיר
+  </button>
+  <button data-tab="s-more">
+    <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    עוד
+  </button>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <h2 id="sheetTitle">תנועה חדשה</h2>
+
+  <div class="seg" id="kindSeg">
+    <button type="button" data-kind="out" aria-pressed="true">הוצאה</button>
+    <button type="button" data-kind="in"  aria-pressed="false">הכנסה</button>
+  </div>
+
+  <div class="field">
+    <label for="fDesc">תיאור / ספק</label>
+    <input id="fDesc" type="text" placeholder="לוחות עץ אגוז">
+  </div>
+  <div class="field">
+    <label for="fProject">פרויקט</label>
+    <select id="fProject"></select>
+  </div>
+  <div class="field">
+    <label for="fCat">קטגוריה</label>
+    <select id="fCat"></select>
+  </div>
+  <div class="field">
+    <label for="fAmount">סכום (₪)</label>
+    <input id="fAmount" type="number" inputmode="numeric" placeholder="0">
+  </div>
+  <div class="field">
+    <label for="fDate">תאריך</label>
+    <input id="fDate" type="date">
+  </div>
+
+  <div class="sheet-acts">
+    <button class="btn" type="button" id="fCancel">ביטול</button>
+    <button class="btn primary" type="button" id="fSave">שמירה</button>
+  </div>
+</div>
+
+<div class="sheet" id="psheet" hidden role="dialog" aria-modal="true" aria-labelledby="psheetTitle">
+  <h2 id="psheetTitle">פרויקט חדש</h2>
+
+  <div class="field">
+    <label for="npName">שם הפרויקט</label>
+    <input id="npName" type="text" placeholder="שולחן קפה">
+  </div>
+  <div class="field">
+    <label for="npClient">לקוח</label>
+    <select id="npClient"></select>
+  </div>
+  <div class="field" id="npNewWrap" hidden>
+    <label for="npNewClient">שם הלקוח החדש</label>
+    <input id="npNewClient" type="text" placeholder="שם מלא">
+  </div>
+  <div class="field">
+    <label for="npStage">שלב נוכחי</label>
+    <select id="npStage"></select>
+  </div>
+  <div class="field">
+    <label for="npPrice">מחיר שנסגר (₪) — אפשר להשאיר ריק</label>
+    <input id="npPrice" type="number" inputmode="numeric">
+  </div>
+  <div class="field">
+    <label for="npDue">תאריך יעד למסירה</label>
+    <input id="npDue" type="date">
+  </div>
+
+  <div class="sheet-acts">
+    <button class="btn" type="button" id="npCancel">ביטול</button>
+    <button class="btn primary" type="button" id="npSave">יצירת פרויקט</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   Demo data — all invented. The real figures get entered by the studio
+   owner once he has the system.
+
+   The balance is a running current-account figure: it starts from an
+   opening balance (a setting he sets and can edit) and every movement
+   applies to it, so it can be reconciled against a bank statement.
+   ------------------------------------------------------------------ */
+const TODAY = '2026-08-15';    // the demo's "today" — declared first, several renders need it
+
+const RECEIVED      = 11000;   // collected from clients since then
+const OWNER_CAPITAL = 7200;    // cash flow only — never counted as revenue
+const SPENT         = 13114;   // all outgoings
+
+/* The account figure is derived, not stored, so the opening-balance setting moves it.
+   ADJUST holds every bank reconciliation: the gap between what we recorded and what
+   the bank actually shows (fees, standing orders, anything he did not enter). */
+let BALANCE = 0;
+let ADJUST  = 0;
+let AS_OF   = null;   // set on first render — TODAY is declared further down
+
+function renderHero() {
+  BALANCE = SETTINGS.opening + RECEIVED + OWNER_CAPITAL - SPENT + ADJUST;
+  document.getElementById('heroValue').textContent   = ils(BALANCE);
+  document.getElementById('heroOpening').textContent = ils(SETTINGS.opening);
+  document.getElementById('heroAsOf').textContent    = 'נכון ל־' + heb(AS_OF || TODAY);
+  document.getElementById('heroAdjRow').hidden       = ADJUST === 0;
+  document.getElementById('heroAdj').textContent     = ils(ADJUST);
+  document.getElementById('ledBalance').textContent  = ils(BALANCE);
+  renderForecast();
+}
+
+/* Reconciliation: he types what the bank says, we book the difference as one line.
+   The point is not to explain the gap — it is to stop it accumulating. */
+document.getElementById('bankSync').addEventListener('click', function () {
+  const field = document.getElementById('bankReal');
+  const real  = parseFloat(field.value);
+  if (isNaN(real)) { say('הקלד את היתרה מהבנק'); return; }
+
+  const diff = Math.round(real - BALANCE);
+  if (diff === 0) { say('היתרה כבר תואמת לבנק'); field.value = ''; return; }
+
+  ADJUST += diff;
+  AS_OF   = TODAY;
+  txs.push({ id: nextTxId++, project: null, date: TODAY, desc: 'התאמה לבנק',
+             cat: 'התאמה', amount: diff, adjust: true });
+  field.value = '';
+  document.getElementById('reconBox').hidden = true;
+  renderHero();
+  renderLedger();
+  say('נרשמה התאמה של ' + ils(diff));
+});
+
+/* Expected future movements — receivables and known fixed costs. */
+const movements = [
+  { date: '2026-08-25', label: 'ספסל אגוז',   client: 'מאיה בן אליהו', amount:  1500 },
+  { date: '2026-09-01', label: 'שכירות סדנה', client: 'סטודיו מלץ',    amount: -1800 },
+  { date: '2026-09-10', label: 'מדף ספרים',   client: 'יואב שמש',      amount:  1600 },
+  { date: '2026-10-01', label: 'שכירות סדנה', client: 'סטודיו מלץ',    amount: -1800 },
+  { date: '2026-11-01', label: 'שכירות סדנה', client: 'סטודיו מלץ',    amount: -1800 },
+];
+
+/* Money committed by a signed project. */
+const receivables = [
+  { name: 'ספסל אגוז', client: 'מאיה בן אליהו', amount: 1500, due: '2026-08-25' },
+  { name: 'מדף ספרים', client: 'יואב שמש',      amount: 1600, due: '2026-09-10' },
+];
+
+/* Quotes out with the client — money that is NOT committed. */
+const quotes = [
+  { name: 'ארון קיר', client: 'משפחת אדלר', amount: 12000, sent: '2026-08-05',
+    decision: '2026-09-20', project: 'p3' },
+];
+
+/* The pipeline from the spec, in order. A project stores an *index* into this
+   list rather than a label, so "how far along is it" is a number we can compute. */
+const STAGES = ['ליד חדש', 'פגישה ומדידה', 'הצעת מחיר', 'מקדמה וסקיצה', 'רכש חומרים',
+                'ייצור בסדנה', 'גימור', 'אספקה והתקנה', 'הושלם'];
+const DONE = STAGES.length - 1;
+
+/* Projects carry an id, because every transaction points at one. */
+/* Clients are their own table from day one (D5): contact details live here once,
+   and a project points at a client by id instead of repeating the name. */
+const clients = [
+  { id: 'c1', name: 'מאיה בן אליהו', phone: '052-1234567', address: 'הרצל 12, תל אביב' },
+  { id: 'c2', name: 'יואב שמש',      phone: '054-7654321', address: 'ירושלים 8, רמת גן' },
+  { id: 'c3', name: 'משפחת אדלר',    phone: '053-9998877', address: 'הגפן 4, הוד השרון' },
+  { id: 'c4', name: 'רון לוי',       phone: '050-1112233', address: 'ויצמן 30, כפר סבא' },
+];
+
+const projects = [
+  { id: 'p1', name: 'ספסל אגוז',   clientId: 'c1', stage: 5, live: true,  price: 1500,
+    opened: '2026-07-10', due: '2026-08-25', days: 5, plannedDays: 4 },
+  { id: 'p2', name: 'מדף ספרים',   clientId: 'c2', stage: 6, live: true,  price: 2600,
+    opened: '2026-07-20', due: '2026-09-10', days: 3, plannedDays: 5 },
+  { id: 'p3', name: 'ארון קיר',    clientId: 'c3', stage: 2, live: false, price: 12000,
+    opened: '2026-08-05', due: '2026-10-15', days: 0, plannedDays: 9 },
+  { id: 'p4', name: 'שידת מגירות', clientId: 'c4', stage: 8, live: false, price: 3200,
+    opened: '2026-05-01', due: '2026-06-20', days: 9, plannedDays: 8 },
+];
+
+/* A phone number is a link into the dialer — tapping it starts the call. */
+const ICON_PHONE = '<svg viewBox="0 0 24 24"><path d="M6 3h4l2 5-2.5 1.5a12 12 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2.2 2A17 17 0 0 1 4 5.2 2 2 0 0 1 6 3z"/></svg>';
+const tel = num => (!num || num === '—') ? '—'
+  : '<a class="tel" href="tel:' + num.replace(/[^0-9+]/g, '') + '">' + ICON_PHONE +
+    '<span class="num">' + num + '</span></a>';
+
+const clientOf   = p => clients.find(c => c.id === p.clientId) ||
+                        { name: '—', phone: '—', address: '—' };
+const clientName = p => clientOf(p).name;
+
+/* Settings the owner edits himself — never numbers we ask him for (D12). */
+const SETTINGS = { opening: 2500, rent: 1800, daysPerMonth: 8, dayRate: 450 };
+
+let suppliers = [
+  { id: 1, name: 'מחסן עצים הצפון', phone: '04-8123456',
+    note: 'איכות מצוינת. מידות בטלפון לא תמיד מדויקות — למדוד בקבלה.' },
+  { id: 2, name: 'סטודיו מלץ', phone: '03-5551234', note: 'שכירות הסדנה ומתכלים.' },
+  { id: 3, name: 'פרזול ב.ג.', phone: '03-6667788', note: 'מסילות איכותיות, אספקה תוך יומיים.' },
+];
+let nextSupplierId = 4;
+
+/* Materials carry planned AND actual thickness. A board ordered at 50mm arrives at
+   42mm after planing, and the whole cut plan changes — that gap is the point. */
+let materials = [
+  { id: 1, project: 'p1', name: 'אגוז אמריקאי', planT: 50, actT: 42,
+    supplier: 'מחסן עצים הצפון', cost: 864 },
+  { id: 2, project: 'p1', name: 'שמן גימור', planT: null, actT: null,
+    supplier: 'סטודיו מלץ', cost: 120 },
+  { id: 3, project: 'p2', name: 'אלון אירופי', planT: 25, actT: 25,
+    supplier: 'מחסן עצים הצפון', cost: 620 },
+];
+let nextMatId = 4;
+
+let lessons = [
+  { id: 1, project: 'p1', date: '2026-08-05',
+    text: 'המחסן דיווח בטלפון על עובי 50 מ״מ, בפועל הקורות היו 42 מ״מ אחרי הקצעה — נדרשה התאמה בחיבורים.',
+    tags: ['מחסן_עצים', 'חיבורים'] },
+];
+let nextLessonId = 2;
+
+let journal = [
+  { id: 1, project: 'p1', date: '2026-08-12',
+    text: 'רציתי ספסל שנראה כאילו צמח מהקיר. הכי נהניתי מהתאמת הטקסטורה בין הרגליים למושב.' },
+];
+let nextJournalId = 2;
+
+let media = [
+  { id: 1, project: 'p1', phase: 'חומר גלם', portfolio: false },
+  { id: 2, project: 'p1', phase: 'תהליך',    portfolio: false },
+  { id: 3, project: 'p1', phase: 'מוצר סופי', portfolio: true  },
+  { id: 4, project: 'p2', phase: 'תהליך',    portfolio: false },
+];
+const stageName = p => STAGES[p.stage];
+
+/* One flat ledger: a transaction belongs to a project and its sign carries the
+   direction, so income and expenses never need two separate tables. */
+let txs = [
+  { id: 1, project: 'p1', date: '2026-08-04', desc: 'מחסן עצים',     cat: 'חומר גלם',   amount:  -864 },
+  { id: 2, project: 'p1', date: '2026-08-11', desc: 'סטודיו מלץ',    cat: 'מתכלים',     amount:  -200 },
+  { id: 3, project: 'p2', date: '2026-07-28', desc: 'מקדמה מיואב',   cat: 'תשלום לקוח', amount:  1000 },
+  { id: 4, project: 'p2', date: '2026-08-02', desc: 'מחסן עצים',     cat: 'חומר גלם',   amount:  -620 },
+  { id: 5, project: 'p2', date: '2026-08-09', desc: 'פרזול ומסילות', cat: 'פרזול',      amount:  -180 },
+  /* project: null = overhead, his "כללי / סדנה" bucket */
+  { id: 6, project: null, date: '2026-07-01', desc: 'סטודיו מלץ', cat: 'שכירות', amount: -1800 },
+  { id: 7, project: null, date: '2026-08-01', desc: 'סטודיו מלץ', cat: 'שכירות', amount: -1800 },
+  /* owner capital: cash in, but deliberately NOT revenue */
+  { id: 8, project: null, date: '2026-07-05', desc: 'קרן באומן', cat: 'הון עצמי', amount: 7200, capital: true },
+];
+let nextTxId = 6;
+
+const CATS = {
+  out: ['חומר גלם', 'מתכלים', 'פרזול', 'גימורים', 'הובלה', 'שכירות', 'ציוד', 'אחר'],
+  in:  ['מקדמה', 'תשלום ביניים', 'תשלום סופי', 'תשלום לקוח', 'הון עצמי', 'אחר'],
+};
+
+const ils = n => (n < 0 ? '−' : '') + Math.abs(Math.round(n)).toLocaleString('en-US') + ' ₪';
+const heb = s => { const p = s.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; };
+
+/* ---- forecast to a chosen date ---- */
+function renderForecast() {
+  const until = document.getElementById('until').value;
+  const due   = movements.filter(m => m.date <= until && m.date >= '2026-08-15');
+  const delta = due.reduce((s, m) => s + m.amount, 0);
+
+  document.getElementById('fcValue').textContent = ils(BALANCE + delta);
+  document.getElementById('fcSub').textContent   = 'יתרה צפויה ב־' + heb(until) + ' · הערכה בלבד';
+
+  document.getElementById('fcList').innerHTML = due.length
+    ? due.map(m =>
+        '<li><span>' + m.label +
+        ' <span class="d">· ' + m.client + ' · ' + heb(m.date) + '</span></span>' +
+        '<span class="a ' + (m.amount > 0 ? 'plus' : 'minus') + '">' +
+        '<span class="num">' + ils(m.amount) + '</span></span></li>').join('')
+    : '<li><span class="d">אין תנועות צפויות עד התאריך הזה</span></li>';
+
+  const live = quotes.filter(q => q.decision <= until);
+  document.getElementById('fcQuote').innerHTML = live.length
+    ? live.map(q => 'אם ההצעה ל' + q.client + ' תיסגר (' + heb(q.decision) + '): היתרה תהיה <b>' +
+        '<span class="num">' + ils(BALANCE + delta + q.amount) + '</span></b>').join('<br>')
+    : 'אין הצעות מחיר שצפויות להיסגר עד התאריך הזה.';
+}
+document.getElementById('until').addEventListener('change', renderForecast);
+renderHero();
+
+/* ---- affordability check ---- */
+const spend = document.getElementById('spend');
+spend.addEventListener('input', function () {
+  const out = document.getElementById('affordOut');
+  const v = parseFloat(spend.value);
+  if (!v || v <= 0) { out.textContent = ''; out.className = 'out'; return; }
+  const left = BALANCE - v;
+  out.innerHTML = left >= 0
+    ? 'יישארו <span class="num">' + ils(left) + '</span>'
+    : 'חסרים <span class="num">' + ils(Math.abs(left)) + '</span>';
+  out.className = 'out ' + (left >= 0 ? 'ok' : 'bad');
+});
+
+/* ---- receivables ---- */
+document.getElementById('receivables').innerHTML =
+  receivables.map(r =>
+    '<div class="lrow"><div>' +
+    '<div class="lname">' + r.name + ' <span class="lclient">· ' + r.client + '</span></div>' +
+    '<div class="ldate">צפי גבייה · ' + heb(r.due) + '</div></div>' +
+    '<div class="lamt"><span class="num">' + ils(r.amount) + '</span></div></div>').join('') +
+  '<div class="total"><span>סה״כ לגבייה</span><span class="num">' +
+  ils(receivables.reduce((s, r) => s + r.amount, 0)) + '</span></div>';
+
+/* ---- pending quotes ---- */
+function renderQuotes() {
+document.getElementById('quotes').innerHTML =
+  quotes.map(q =>
+    '<div class="lrow"><div>' +
+    '<div class="lname">' + q.name + ' <span class="lclient">· ' + q.client + '</span></div>' +
+    '<div class="ldate">נשלחה ' + heb(q.sent) + ' · החלטה צפויה ' + heb(q.decision) + '</div></div>' +
+    '<div class="lamt" style="color:var(--ink-2)"><span class="num">' + ils(q.amount) +
+    '</span></div></div>').join('') +
+  '<div class="total" style="color:var(--ink-2)"><span>סה״כ הצעות מחיר</span><span class="num">' +
+  ils(quotes.reduce((s, q) => s + q.amount, 0)) + '</span></div>';
+}
+renderQuotes();
+
+/* ---- active projects: every row opens that project's transactions ---- */
+function renderPipeline() {
+document.getElementById('pipeline').innerHTML = projects.filter(p => p.stage < DONE && !p.lost).map(p =>
+  '<button class="p-row" data-open="' + p.id + '">' +
+  '<span class="dot ' + (p.live ? '' : 'idle') + '"></span>' +
+  '<span class="p-name">' + p.name + '</span>' +
+  '<span class="lclient">· ' + clientName(p) + '</span>' +
+  '<span class="chip p-stage">' + stageName(p) + '</span></button>').join('');
+document.querySelectorAll('#pipeline [data-open]').forEach(function (b) {
+  b.addEventListener('click', function () { openProject(b.dataset.open); });
+});
+}
+renderPipeline();
+
+/* ================= screen router =================
+   Two screens live in one file; exactly one .screen is visible at a time.
+   No framework needed for this — hidden/visible is the whole mechanism. */
+let currentScreen  = 's-dashboard';
+let currentProject = null;
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach(function (el) { el.hidden = el.id !== id; });
+  document.querySelectorAll('.tabs button').forEach(function (b) {
+    if (b.dataset.tab === id) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  setFab(id);   // the (+) adds whatever this screen is about — and hides where nothing fits
+  currentScreen = id;
+  window.scrollTo(0, 0);
+}
+function openProject(pid) {
+  const BACK_LABEL = { 's-projects': 'פרויקטים', 's-quotes': 'הצעות מחיר',
+                       's-client': 'כרטיס הלקוח', 's-dashboard': 'דשבורד' };
+  const from = BACK_LABEL[currentScreen] ? currentScreen : 's-dashboard';
+  const back = document.querySelector('#s-tx [data-back]');
+  back.dataset.back  = from;
+  back.textContent   = '→ חזרה ל' + BACK_LABEL[from];
+  currentProject = pid;
+  renderTx();
+  renderInfo();
+  renderWorkshop();
+  renderMaterials();
+  renderLessons();
+  renderJournal();
+  renderMedia();
+  setPtab('pt-info');
+  go('s-tx');
+}
+document.querySelectorAll('[data-back]').forEach(function (b) {
+  b.addEventListener('click', function () { go(b.dataset.back || 's-dashboard'); });
+});
+/* tabs that point at a built screen navigate to it */
+document.querySelectorAll('[data-tab]').forEach(function (b) {
+  b.addEventListener('click', function () { go(b.dataset.tab); });
+});
+
+/* ================= screen 2: transactions of one project ================= */
+
+const signed = n => (n > 0 ? '+' : '') + ils(n);
+
+const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L18 10l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>';
+const ICON_DEL  = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>';
+
+function renderTx() {
+  const p = projects.find(x => x.id === currentProject);
+  document.getElementById('txTitle').textContent = p.name;
+  document.getElementById('txSub').textContent   = clientName(p) + ' · מחיר שנסגר ' + ils(p.price);
+  document.getElementById('txStage').textContent = stageName(p);
+
+  const rows   = txs.filter(t => t.project === p.id).sort((a, b) => a.date < b.date ? -1 : 1);
+  const income = rows.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const spent  = rows.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+
+  document.getElementById('txIn').textContent  = ils(income);
+  document.getElementById('txOut').textContent = ils(spent);
+  document.getElementById('txBal').textContent = signed(income + spent);
+
+  document.getElementById('txList').innerHTML = rows.length
+    ? rows.map(t =>
+        '<div class="lrow"><div>' +
+        '<div class="lname">' + t.desc + ' <span class="lclient">· ' + t.cat + '</span></div>' +
+        '<div class="ldate">' + heb(t.date) + '</div></div>' +
+        '<div class="tx-end">' +
+        '<div class="lamt ' + (t.amount > 0 ? 'plus' : 'minus') + '">' +
+        '<span class="num">' + signed(t.amount) + '</span></div>' +
+        '<div class="tx-acts">' +
+        '<button data-edit="' + t.id + '" aria-label="עריכת תנועה">' + ICON_EDIT + '</button>' +
+        '<button data-del="'  + t.id + '" aria-label="מחיקת תנועה">' + ICON_DEL  + '</button>' +
+        '</div></div></div>').join('') +
+      '<div class="total"><span>נותר לגבייה</span><span class="num">' +
+      ils(p.price - income) + '</span></div>'
+    : '<div class="empty">אין עדיין תנועות בפרויקט הזה — הוסיפו עם כפתור ה־+</div>';
+
+  wireRowActions('#txList');
+}
+
+/* ---- the add / edit sheet ---- */
+let editingId = null;
+let kind = 'out';
+
+function fillCats(selected) {
+  const sel = document.getElementById('fCat');
+  sel.innerHTML = CATS[kind].map(c =>
+    '<option' + (c === selected ? ' selected' : '') + '>' + c + '</option>').join('');
+}
+function setKind(k, selectedCat) {
+  kind = k;
+  document.querySelectorAll('#kindSeg button').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.kind === k));
+  });
+  fillCats(selectedCat);
+}
+/* Row action buttons are wired per screen: both lists live in the DOM at once,
+   so an unscoped querySelectorAll would bind the other screen's buttons too. */
+function wireRowActions(scope) {
+  document.querySelectorAll(scope + ' [data-edit]').forEach(function (b) {
+    b.addEventListener('click', function () { openSheet(Number(b.dataset.edit)); });
+  });
+  document.querySelectorAll(scope + ' [data-del]').forEach(function (b) {
+    b.addEventListener('click', function () { removeTx(Number(b.dataset.del)); });
+  });
+}
+
+/* Every list that reads txs is redrawn together, so no screen goes stale. */
+function refreshTx() {
+  if (currentProject) renderTx();
+  renderLedger();
+}
+
+function fillProjects(selected) {
+  document.getElementById('fProject').innerHTML =
+    '<option value="">כללי / סדנה</option>' +
+    projects.map(p => '<option value="' + p.id + '"' +
+      (p.id === selected ? ' selected' : '') + '>' + p.name + '</option>').join('');
+}
+
+function openSheet(id) {
+  editingId = id || null;
+  const t = editingId ? txs.find(x => x.id === editingId) : null;
+  document.getElementById('sheetTitle').textContent = t ? 'עריכת תנועה' : 'תנועה חדשה';
+  setKind(t ? (t.amount > 0 ? 'in' : 'out') : 'out', t ? t.cat : null);
+  fillProjects(t ? t.project : currentProject);
+  document.getElementById('fDesc').value   = t ? t.desc : '';
+  document.getElementById('fAmount').value = t ? Math.abs(t.amount) : '';
+  document.getElementById('fDate').value   = t ? t.date : TODAY;
+  document.getElementById('sheet').hidden  = false;
+  document.getElementById('scrim').hidden  = false;
+}
+function closeSheet() {
+  document.getElementById('sheet').hidden = true;
+  document.getElementById('scrim').hidden = true;
+}
+function removeTx(id) {
+  const t = txs.find(x => x.id === id);
+  if (!window.confirm('למחוק את "' + t.desc + '"?')) return;
+  txs = txs.filter(x => x.id !== id);
+  refreshTx();
+  say('התנועה נמחקה');
+}
+
+document.querySelectorAll('#kindSeg button').forEach(function (b) {
+  b.addEventListener('click', function () { setKind(b.dataset.kind); });
+});
+document.getElementById('fCancel').addEventListener('click', closeSheet);
+document.getElementById('scrim').addEventListener('click', function () {
+  closeSheet();
+  document.getElementById('psheet').hidden = true;
+});
+document.getElementById('fSave').addEventListener('click', function () {
+  const desc = document.getElementById('fDesc').value.trim();
+  const amt  = Math.abs(parseFloat(document.getElementById('fAmount').value));
+  if (!desc || !amt) { say('צריך תיאור וסכום'); return; }
+
+  const cat = document.getElementById('fCat').value;
+  const rec = {
+    project: document.getElementById('fProject').value || null,
+    date:    document.getElementById('fDate').value || TODAY,
+    desc:    desc,
+    cat:     cat,
+    amount:  kind === 'in' ? amt : -amt,
+    capital: cat === 'הון עצמי',      // cash in, but never counted as revenue
+  };
+  const msg = editingId ? 'התנועה עודכנה' : 'התנועה נוספה';
+  if (editingId) Object.assign(txs.find(t => t.id === editingId), rec);
+  else txs.push(Object.assign({ id: nextTxId++ }, rec));
+
+  closeSheet();
+  refreshTx();
+  say(msg);
+});
+
+/* ================= screen 3: quote builder =================
+   The point of this screen: it works out the cost first, so a price that
+   does not cover the cost shows up as a loss *before* the quote goes out. */
+/* Rent per workshop day, derived from settings the owner controls. */
+const overheadDay = () => SETTINGS.rent / SETTINGS.daysPerMonth;
+
+let qItems = [
+  { id: 1, desc: 'לוחות אלון', qty: 3, unit: 380 },
+  { id: 2, desc: 'פרזול ומסילות', qty: 1, unit: 240 },
+  { id: 3, desc: 'שמן גימור', qty: 1, unit: 120 },
+];
+let nextItemId = 4;
+let priceTouched = false;   // once he types a price himself, stop overwriting it
+
+const val = id => parseFloat(document.getElementById(id).value) || 0;
+
+function renderQuote() {
+  const days   = val('qDays');
+  const rate   = val('qRate');
+  const mat    = qItems.reduce((s, i) => s + i.qty * i.unit, 0);
+  const labor  = days * rate;
+  const oh     = days * overheadDay();
+  const cost   = mat + labor + oh;
+  const sugg   = Math.round(cost * (1 + val('qMarkup') / 100) / 10) * 10;
+
+  document.getElementById('qItems').innerHTML = qItems.length
+    ? qItems.map(i =>
+        '<div class="lrow"><div>' +
+        '<div class="lname">' + i.desc + '</div>' +
+        '<div class="ldate">' + i.qty + ' × ' + ils(i.unit) + '</div></div>' +
+        '<div class="tx-end"><div class="lamt"><span class="num">' + ils(i.qty * i.unit) + '</span></div>' +
+        '<div class="tx-acts"><button data-qdel="' + i.id + '" aria-label="מחיקת שורה">' + ICON_DEL + '</button></div>' +
+        '</div></div>').join('') +
+      '<div class="total"><span>סה״כ חומרים</span><span class="num">' + ils(mat) + '</span></div>'
+    : '<div class="empty">אין עדיין שורות חומרים</div>';
+
+  document.querySelectorAll('[data-qdel]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      qItems = qItems.filter(i => i.id !== Number(b.dataset.qdel));
+      renderQuote();
+    });
+  });
+
+  document.getElementById('qLabor').textContent = ils(labor);
+  document.getElementById('qOh').textContent    = ils(oh);
+  document.getElementById('qOhNote').textContent =
+    'שכירות ' + ils(SETTINGS.rent) + ' לחודש ÷ ' + SETTINGS.daysPerMonth + ' ימי סדנה = ' +
+    ils(overheadDay()) + ' ליום. זה החלק של הפרויקט הזה בשכירות.';
+
+  document.getElementById('sMat').textContent   = ils(mat);
+  document.getElementById('sLabor').textContent = ils(labor);
+  document.getElementById('sOh').textContent    = ils(oh);
+  document.getElementById('sCost').textContent  = ils(cost);
+  document.getElementById('qSuggest').textContent = ils(sugg);
+
+  const priceEl = document.getElementById('qPrice');
+  if (!priceTouched) priceEl.value = sugg;
+  const price  = parseFloat(priceEl.value) || 0;
+  const profit = price - cost;
+  const pct    = price ? Math.round(profit / price * 100) : 0;
+
+  document.getElementById('qVerdict').innerHTML = profit >= 0
+    ? '<span class="ok">רווח <span class="num">' + ils(profit) + '</span> · ' + pct + '% מהמחיר</span>' +
+      '<span class="why">אחרי חומרים, ימי העבודה שלך והחלק בשכירות.</span>'
+    : '<span class="bad">הפסד <span class="num">' + ils(Math.abs(profit)) + '</span></span>' +
+      '<span class="why">המחיר הזה לא מכסה את העלות. צריך להעלות מחיר, לקצר ימי עבודה או להוזיל חומרים.</span>';
+}
+
+['qDays', 'qRate', 'qMarkup'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', renderQuote);
+});
+document.getElementById('qPrice').addEventListener('input', function () {
+  priceTouched = true;
+  renderQuote();
+});
+document.getElementById('qiAdd').addEventListener('click', function () {
+  const desc = document.getElementById('qiDesc').value.trim();
+  const qty  = val('qiQty') || 1;
+  const unit = val('qiUnit');
+  if (!desc || !unit) { say('צריך תיאור ומחיר ליחידה'); return; }
+  qItems.push({ id: nextItemId++, desc: desc, qty: qty, unit: unit });
+  document.getElementById('qiDesc').value = '';
+  document.getElementById('qiQty').value  = '';
+  document.getElementById('qiUnit').value = '';
+  renderQuote();
+});
+document.getElementById('qSave').addEventListener('click', function () {
+  const name   = document.getElementById('qName').value.trim();
+  const client = document.getElementById('qClient').value.trim();
+  const price  = val('qPrice');
+  if (!name || !client || !price) { say('צריך שם פרויקט, לקוח ומחיר'); return; }
+
+  const d = new Date(TODAY);
+  d.setDate(d.getDate() + 30);                       // assume a decision within a month
+  const decision = d.toISOString().slice(0, 10);
+
+  /* A quote is the birth of a project: it gets a project card straight away,
+     parked at the הצעת מחיר stage until the client says yes. */
+  let c = clients.find(x => x.name === client);
+  if (!c) {
+    c = { id: 'c' + (clients.length + 1), name: client, phone: '—', address: '—' };
+    clients.push(c);
+  }
+  const pid = 'p' + (projects.length + 1);
+  projects.push({ id: pid, name: name, clientId: c.id, stage: 2, live: false, price: price,
+                  opened: TODAY, due: decision, days: 0, plannedDays: val('qDays') });
+  quotes.push({ name: name, client: client, amount: price,
+                sent: TODAY, decision: decision, project: pid });
+
+  renderQuotes();
+  renderQuoteList();
+  renderProjects();
+  renderForecast();      // an open quote changes the "if it closes" line
+  go('s-quotes');
+  say('ההצעה נשמרה ונפתח לה כרטיס פרויקט');
+});
+renderQuote();
+
+/* ================= screen 4: projects list ================= */
+let prFilter = 'active';
+
+function renderProjects() {
+  const list = projects.filter(p =>
+    prFilter === 'all'  ? true :
+    prFilter === 'done' ? p.stage === DONE :
+                          p.stage < DONE && !p.lost);
+
+  document.getElementById('prSub').textContent =
+    projects.filter(p => p.stage < DONE && !p.lost).length + ' פרויקטים פעילים · ' +
+    projects.filter(p => p.stage === DONE).length + ' הושלמו';
+
+  document.getElementById('prList').innerHTML = list.length
+    ? list.map(p => {
+        const fin = p.stage === DONE;
+        const bars = STAGES.map((_, i) =>
+          '<i class="' + (i <= p.stage ? 'done' + (fin ? ' fin' : '') : '') + '"></i>').join('');
+        return '<button class="prow" data-openp="' + p.id + '">' +
+          '<span class="prow-top"><span class="lname">' + p.name +
+          ' <span class="lclient">· ' + clientName(p) + '</span></span>' +
+          '<span class="lamt"><span class="num">' + ils(p.price) + '</span></span></span>' +
+          '<span class="steps">' + bars + '</span>' +
+          '<span class="stage">' + stageName(p) + ' · שלב ' + (p.stage + 1) + ' מתוך ' + STAGES.length +
+          (p.lost ? ' <span class="chip lost">הצעה נדחתה</span>' : '') +
+          '</span></button>';
+      }).join('')
+    : '<div class="empty">אין פרויקטים בקטגוריה הזו</div>';
+
+  document.querySelectorAll('[data-openp]').forEach(function (b) {
+    b.addEventListener('click', function () { openProject(b.dataset.openp); });
+  });
+}
+document.querySelectorAll('#prFilters button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    prFilter = b.dataset.filter;
+    document.querySelectorAll('#prFilters button').forEach(function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+    renderProjects();
+  });
+});
+/* A new project starts life as a quote — that is the real workflow. */
+document.getElementById('prNew').addEventListener('click', function () { openNewProject(); });
+renderProjects();
+
+/* ================= screen 5: ledger =================
+   Every transaction, newest first, grouped by month with a monthly subtotal —
+   the shape he already reads in his spreadsheet. */
+const MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+                'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+const monthName = key => MONTHS[Number(key.slice(5, 7)) - 1] + ' ' + key.slice(0, 4);
+const projectName = id => {
+  const p = projects.find(x => x.id === id);
+  return p ? p.name : 'כללי / סדנה';
+};
+
+let ledFilter = 'all';
+
+function renderLedger() {
+  let rows = txs.slice().sort((a, b) => a.date < b.date ? 1 : -1);   // newest first
+  if (ledFilter === 'in')  rows = rows.filter(t => t.amount > 0);
+  if (ledFilter === 'out') rows = rows.filter(t => t.amount < 0);
+
+  /* Revenue excludes owner capital on purpose — it is cash, not a sale. */
+  const revenue = txs.filter(t => t.amount > 0 && !t.capital && !t.adjust).reduce((s, t) => s + t.amount, 0);
+  const spent   = txs.filter(t => t.amount < 0 && !t.adjust).reduce((s, t) => s + t.amount, 0);
+  /* the signed figures need LTR isolation, so build markup rather than text */
+  document.getElementById('ledSub').innerHTML =
+    'הכנסות מלקוחות <span class="num">' + ils(revenue) + '</span> · הוצאות <span class="num">' +
+    ils(spent) + '</span> · ' + txs.length + ' תנועות';
+
+  const groups = {};
+  rows.forEach(t => { const k = t.date.slice(0, 7); (groups[k] = groups[k] || []).push(t); });
+  const keys = Object.keys(groups).sort().reverse();
+
+  document.getElementById('ledList').innerHTML = keys.length
+    ? keys.map(k => {
+        const sum = groups[k].reduce((s, t) => s + t.amount, 0);
+        return '<div class="mgroup"><div class="mhead"><span>' + monthName(k) +
+          '</span><span class="msum">סה״כ <span class="num">' + signed(sum) + '</span></span></div>' +
+          '<div class="card">' + groups[k].map(t =>
+            '<div class="lrow"><div>' +
+            '<div class="lname">' + t.desc +
+            ' <span class="lclient">· ' + t.cat + '</span>' +
+            (t.capital ? '<span class="chip">לא מחזור</span>' : '') +
+            (t.adjust  ? '<span class="chip">התאמה</span>'   : '') + '</div>' +
+            '<div class="ldate">' + heb(t.date) + ' · <span class="lproj">' +
+            projectName(t.project) + '</span></div></div>' +
+            '<div class="tx-end">' +
+            '<div class="lamt ' + (t.amount > 0 ? 'plus' : 'minus') + '">' +
+            '<span class="num">' + signed(t.amount) + '</span></div>' +
+            '<div class="tx-acts">' +
+            '<button data-edit="' + t.id + '" aria-label="עריכת תנועה">' + ICON_EDIT + '</button>' +
+            '<button data-del="'  + t.id + '" aria-label="מחיקת תנועה">' + ICON_DEL  + '</button>' +
+            '</div></div></div>').join('') + '</div></div>';
+      }).join('')
+    : '<div class="card"><div class="empty">אין תנועות בסינון הזה</div></div>';
+
+  wireRowActions('#ledList');
+}
+document.querySelectorAll('#ledFilters button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    ledFilter = b.dataset.lfilter;
+    document.querySelectorAll('#ledFilters button').forEach(function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+    renderLedger();
+  });
+});
+renderLedger();
+
+/* ================= project card: six tabs over one project ================= */
+let ptab = 'pt-info';
+
+function setPtab(id) {
+  ptab = id;
+  document.querySelectorAll('.ptab').forEach(function (el) { el.hidden = el.id !== id; });
+  document.querySelectorAll('#ptabs button').forEach(function (b) {
+    b.setAttribute('aria-pressed', String(b.dataset.ptab === id));
+  });
+}
+document.querySelectorAll('#ptabs button').forEach(function (b) {
+  b.addEventListener('click', function () { setPtab(b.dataset.ptab); });
+});
+
+const project = () => projects.find(x => x.id === currentProject);
+
+/* ---- tab 1: pipeline + client details ---- */
+function renderInfo() {
+  const p = project();
+  const fin = p.stage === DONE;
+  document.getElementById('stName').textContent = stageName(p);
+  document.getElementById('stPos').textContent  = 'שלב ' + (p.stage + 1) + ' מתוך ' + STAGES.length;
+  document.getElementById('stBars').innerHTML = STAGES.map((_, i) =>
+    '<i class="' + (i <= p.stage ? 'done' + (fin ? ' fin' : '') : '') + '"></i>').join('');
+  document.getElementById('stNext').disabled = fin;
+  document.getElementById('stPrev').disabled = p.stage === 0;
+
+  document.getElementById('infoRows').innerHTML =
+    '<div><span>לקוח</span> <span>' + clientName(p) + '</span></div>' +
+    '<div><span>טלפון</span> <span>' + tel(clientOf(p).phone) + '</span></div>' +
+    '<div><span>כתובת</span> <span>' + clientOf(p).address + '</span></div>' +
+    '<div><span>נפתח</span> <span class="num">' + heb(p.opened) + '</span></div>' +
+    '<div><span>יעד למסירה</span> <span class="num">' + heb(p.due) + '</span></div>' +
+    '<div><span>מחיר שנסגר</span> <span class="num">' + ils(p.price) + '</span></div>';
+}
+document.getElementById('stNext').addEventListener('click', function () {
+  const p = project();
+  if (p.stage < DONE) { p.stage++; renderInfo(); renderProjects(); renderPipeline(); say('השלב עודכן — ' + stageName(p)); }
+});
+document.getElementById('stPrev').addEventListener('click', function () {
+  const p = project();
+  if (p.stage > 0) { p.stage--; renderInfo(); renderProjects(); renderPipeline(); say('השלב עודכן — ' + stageName(p)); }
+});
+
+/* ---- tab 3: materials, planned vs actual ---- */
+function renderMaterials() {
+  const rows = materials.filter(m => m.project === currentProject);
+  document.getElementById('matList').innerHTML = rows.length
+    ? rows.map(m => {
+        const gap = m.planT && m.actT && m.planT !== m.actT;
+        return '<div class="mat">' +
+          '<div class="mat-top"><span class="lname">' + m.name + '</span>' +
+          '<span class="lamt"><span class="num">' + ils(m.cost) + '</span></span></div>' +
+          (m.planT ? '<div class="dims">' +
+            '<span>עובי מתוכנן</span><b><span class="num">' + m.planT + ' מ״מ</span></b>' +
+            '<span>עובי בפועל</span><b><span class="num">' + (m.actT || '—') + ' מ״מ</span></b>' +
+            '</div>' : '') +
+          '<div class="ldate">ספק · ' + m.supplier + '</div>' +
+          (gap ? '<span class="warn">פער של ' + (m.planT - m.actT) + ' מ״מ — תכנון החיתוך משתנה</span>' : '') +
+          '</div>';
+      }).join('') +
+      '<div class="total"><span>סה״כ חומרים</span><span class="num">' +
+      ils(rows.reduce((s, m) => s + m.cost, 0)) + '</span></div>'
+    : '<div class="empty">עדיין לא נרשמו חומרים</div>';
+}
+document.getElementById('maAdd').addEventListener('click', function () {
+  const name = document.getElementById('maName').value.trim();
+  const cost = parseFloat(document.getElementById('maCost').value) || 0;
+  if (!name) { say('צריך סוג עץ או רכיב'); return; }
+  materials.push({
+    id: nextMatId++, project: currentProject, name: name,
+    planT: parseFloat(document.getElementById('maPlanT').value) || null,
+    actT:  parseFloat(document.getElementById('maActT').value)  || null,
+    supplier: document.getElementById('maSupplier').value.trim() || '—',
+    cost: cost,
+  });
+  ['maName', 'maPlanT', 'maActT', 'maCost', 'maSupplier'].forEach(function (id) {
+    document.getElementById(id).value = '';
+  });
+  renderMaterials();
+  say('החומר נוסף');
+});
+
+/* ---- tab 4: lessons ---- */
+function renderLessons() {
+  const rows = lessons.filter(l => l.project === currentProject);
+  document.getElementById('lesList').innerHTML = rows.length
+    ? rows.map(l =>
+        '<div class="entry"><div class="when">' + heb(l.date) + '</div>' + l.text +
+        '<div class="tags">' + l.tags.map(t => '<span class="chip">#' + t + '</span>').join('') +
+        '</div></div>').join('')
+    : '<div class="empty">אין עדיין לקחים בפרויקט הזה</div>';
+}
+document.getElementById('leAdd').addEventListener('click', function () {
+  const text = document.getElementById('leText').value.trim();
+  if (!text) { say('צריך לכתוב את הלקח'); return; }
+  const tags = document.getElementById('leTags').value.split(',')
+    .map(t => t.trim().replace(/^#/, '')).filter(Boolean);
+  lessons.push({ id: nextLessonId++, project: currentProject, date: TODAY, text: text, tags: tags });
+  document.getElementById('leText').value = '';
+  document.getElementById('leTags').value = '';
+  renderLessons();
+  say('הלקח נשמר');
+});
+
+/* ---- tab 5: journal ---- */
+function renderJournal() {
+  const rows = journal.filter(j => j.project === currentProject);
+  document.getElementById('jouList').innerHTML = rows.length
+    ? rows.map(j => '<div class="entry"><div class="when">' + heb(j.date) + '</div>' + j.text + '</div>').join('')
+    : '<div class="empty">היומן ריק — כתוב משהו בזמן שהזיכרון טרי</div>';
+}
+document.getElementById('joAdd').addEventListener('click', function () {
+  const text = document.getElementById('joText').value.trim();
+  if (!text) { say('אין מה לשמור'); return; }
+  journal.push({ id: nextJournalId++, project: currentProject, date: TODAY, text: text });
+  document.getElementById('joText').value = '';
+  renderJournal();
+  say('הרשומה נשמרה');
+});
+
+/* ---- tab 6: media (placeholders — no real upload in the mockup) ---- */
+function renderMedia() {
+  const rows = media.filter(m => m.project === currentProject);
+  document.getElementById('galList').innerHTML = rows.length
+    ? '<div class="gal">' + rows.map(m =>
+        '<figure><div class="ph">🪵</div>' +
+        '<button class="star" data-star="' + m.id + '" aria-pressed="' + m.portfolio +
+        '" aria-label="סימון לפורטפוליו">★</button>' +
+        '<figcaption>' + m.phase + '</figcaption></figure>').join('') + '</div>'
+    : '<div class="empty">אין עדיין תמונות</div>';
+
+  document.querySelectorAll('[data-star]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const m = media.find(x => x.id === Number(b.dataset.star));
+      m.portfolio = !m.portfolio;
+      renderMedia();
+      say(m.portfolio ? 'סומן לפורטפוליו' : 'הוסר מהפורטפוליו');
+    });
+  });
+}
+document.getElementById('galAdd').addEventListener('click', function () {
+  say('העלאת תמונות תעבוד בגרסה האמיתית');
+});
+
+/* ================= screen 6: quotes list ================= */
+function renderQuoteList() {
+  document.getElementById('qlSub').textContent =
+    quotes.length + ' הצעות ממתינות · סה״כ ' + ils(quotes.reduce((s, q) => s + q.amount, 0));
+
+  document.getElementById('qlList').innerHTML = quotes.length
+    ? quotes.map((q, i) =>
+        '<div class="qrow">' +
+        '<button class="prow" style="border-bottom:0;padding:0" data-openq="' + i + '">' +
+        '<span class="prow-top"><span class="lname">' + q.name +
+        ' <span class="lclient">· ' + q.client + '</span></span>' +
+        '<span class="lamt"><span class="num">' + ils(q.amount) + '</span></span></span>' +
+        '<span class="stage">נשלחה ' + heb(q.sent) + ' · החלטה צפויה ' + heb(q.decision) +
+        '</span></button>' +
+        '<div class="qacts">' +
+        '<button type="button" class="win" data-win="' + i + '">ההצעה אושרה</button>' +
+        '<button type="button" data-lost="' + i + '">נדחתה</button>' +
+        '</div></div>').join('')
+    : '<div class="empty">אין הצעות ממתינות</div>';
+
+  document.querySelectorAll('[data-openq]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const q = quotes[Number(b.dataset.openq)];
+      if (q.project) openProject(q.project);
+      else say('להצעה הזו אין עדיין כרטיס פרויקט');
+    });
+  });
+
+  /* Accepting a quote is what turns it into a live job: the quote leaves the
+     pending list and its project moves on to מקדמה וסקיצה. */
+  document.querySelectorAll('[data-win]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const q = quotes[Number(b.dataset.win)];
+      const p = projects.find(x => x.id === q.project);
+      if (p) { p.stage = 3; p.price = q.amount; p.live = true; }
+      quotes.splice(Number(b.dataset.win), 1);
+      afterQuoteDecision();
+      say('ההצעה אושרה — הפרויקט עבר לשלב מקדמה וסקיצה');
+    });
+  });
+  document.querySelectorAll('[data-lost]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      const q = quotes[Number(b.dataset.lost)];
+      const p = projects.find(x => x.id === q.project);
+      if (p) p.lost = true;          // kept, not deleted — a lost job is still history
+      quotes.splice(Number(b.dataset.lost), 1);
+      afterQuoteDecision();
+      say('ההצעה נדחתה');
+    });
+  });
+}
+
+function afterQuoteDecision() {
+  renderQuoteList();
+  renderQuotes();
+  renderProjects();
+  renderPipeline();
+  renderForecast();
+}
+document.getElementById('qlNew').addEventListener('click', function () { go('s-quote'); });
+renderQuoteList();
+
+/* ================= screens 7-12: hub, clients, suppliers, lessons, settings ========= */
+document.querySelectorAll('[data-goto]').forEach(function (b) {
+  b.addEventListener('click', function () { go(b.dataset.goto); });
+});
+
+function renderMore() {
+  document.getElementById('mnClients').textContent   = clients.length + ' לקוחות';
+  document.getElementById('mnSuppliers').textContent = suppliers.length + ' ספקים';
+  document.getElementById('mnLessons').textContent   = lessons.length + ' לקחים מתויגים';
+}
+
+/* ---- clients ---- */
+const projectsOf = cid => projects.filter(p => p.clientId === cid);
+let currentClient = null;
+
+function renderClients() {
+  document.getElementById('clSub').textContent = clients.length + ' לקוחות במערכת';
+  document.getElementById('clList').innerHTML = clients.map(c => {
+    const ps = projectsOf(c.id);
+    const total = ps.reduce((s, p) => s + p.price, 0);
+    return '<button class="prow" data-openc="' + c.id + '">' +
+      '<span class="prow-top"><span class="lname">' + c.name + '</span>' +
+      '<span class="lamt"><span class="num">' + ils(total) + '</span></span></span>' +
+      '<span class="stage">' + ps.length + ' פרויקטים · ' + c.phone + '</span></button>';
+  }).join('');
+
+  document.querySelectorAll('[data-openc]').forEach(function (b) {
+    b.addEventListener('click', function () { openClient(b.dataset.openc); });
+  });
+}
+
+function openClient(cid) {
+  currentClient = cid;
+  const c = clients.find(x => x.id === cid);
+  const ps = projectsOf(cid);
+
+  document.getElementById('ccName').textContent = c.name;
+  document.getElementById('ccSub').textContent  = ps.length + ' פרויקטים · ' +
+    ils(ps.reduce((s, p) => s + p.price, 0)) + ' סה״כ';
+  document.getElementById('ccInfo').innerHTML =
+    '<div><span>טלפון</span> <span>' + tel(c.phone) + '</span></div>' +
+    '<div><span>כתובת</span> <span>' + c.address + '</span></div>';
+
+  document.getElementById('ccProjects').innerHTML = ps.length
+    ? ps.map(p =>
+        '<button class="prow" data-openpc="' + p.id + '">' +
+        '<span class="prow-top"><span class="lname">' + p.name + '</span>' +
+        '<span class="lamt"><span class="num">' + ils(p.price) + '</span></span></span>' +
+        '<span class="stage">' + stageName(p) + '</span></button>').join('')
+    : '<div class="empty">אין עדיין פרויקטים ללקוח הזה</div>';
+
+  document.querySelectorAll('[data-openpc]').forEach(function (b) {
+    b.addEventListener('click', function () { openProject(b.dataset.openpc); });
+  });
+  go('s-client');
+}
+
+/* ---- suppliers ---- */
+function renderSuppliers() {
+  document.getElementById('supList').innerHTML = suppliers.length
+    ? suppliers.map(s2 =>
+        '<div class="entry"><div class="lname">' + s2.name +
+        '</div><div style="margin-top:4px">' + tel(s2.phone) + '</div>' +
+        (s2.note ? '<div class="note">' + s2.note + '</div>' : '') + '</div>').join('')
+    : '<div class="empty">אין עדיין ספקים</div>';
+}
+document.getElementById('suAdd').addEventListener('click', function () {
+  const name = document.getElementById('suName').value.trim();
+  if (!name) { say('צריך שם ספק'); return; }
+  suppliers.push({ id: nextSupplierId++, name: name,
+    phone: document.getElementById('suPhone').value.trim() || '—',
+    note:  document.getElementById('suNote').value.trim() });
+  ['suName', 'suPhone', 'suNote'].forEach(function (id) { document.getElementById(id).value = ''; });
+  renderSuppliers();
+  renderMore();
+  say('הספק נוסף');
+});
+
+/* ---- lessons library: every lesson, filtered by text or tag ---- */
+function renderLessonLibrary() {
+  const q = document.getElementById('llSearch').value.trim().replace(/^#/, '');
+  const rows = lessons.filter(l =>
+    !q || l.text.indexOf(q) >= 0 || l.tags.some(t => t.indexOf(q) >= 0));
+
+  document.getElementById('llList').innerHTML = rows.length
+    ? rows.map(l => {
+        const p = projects.find(x => x.id === l.project);
+        return '<div class="entry">' +
+          '<div class="when">' + heb(l.date) + ' · ' + (p ? p.name : '—') + '</div>' + l.text +
+          '<div class="tags">' + l.tags.map(t => '<span class="chip">#' + t + '</span>').join('') +
+          '</div></div>';
+      }).join('')
+    : '<div class="empty">לא נמצאו לקחים</div>';
+}
+document.getElementById('llSearch').addEventListener('input', renderLessonLibrary);
+
+/* ---- settings: the numbers everything else is derived from ---- */
+function renderSettings() {
+  document.getElementById('seOpening').value = SETTINGS.opening;
+  document.getElementById('seRent').value    = SETTINGS.rent;
+  document.getElementById('seDays').value    = SETTINGS.daysPerMonth;
+  document.getElementById('seRate').value    = SETTINGS.dayRate;
+  document.getElementById('seNote').textContent =
+    'תקורה לכל יום סדנה: ' + ils(overheadDay()) +
+    '. המספר הזה נכנס לכל הצעת מחיר ולחישוב הרווחיות.';
+}
+[['seOpening', 'opening'], ['seRent', 'rent'], ['seDays', 'daysPerMonth'], ['seRate', 'dayRate']]
+  .forEach(function (pair) {
+    document.getElementById(pair[0]).addEventListener('input', function () {
+      SETTINGS[pair[1]] = parseFloat(this.value) || 0;
+      renderSettings();
+      renderQuote();       // a changed day rate or rent re-prices the open quote
+      renderHero();        // a changed opening balance moves the account figure
+    });
+  });
+
+renderMore();
+renderClients();
+renderSuppliers();
+renderLessonLibrary();
+renderSettings();
+
+/* ---- a project that starts without a quote (an existing job, or a handshake deal) ---- */
+function openNewProject() {
+  document.getElementById('npName').value = '';
+  document.getElementById('npPrice').value = '';
+  document.getElementById('npDue').value = '';
+  document.getElementById('npClient').innerHTML =
+    clients.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('') +
+    '<option value="new">— לקוח חדש —</option>';
+  document.getElementById('npStage').innerHTML =
+    STAGES.map((st, i) => '<option value="' + i + '"' + (i === 1 ? ' selected' : '') + '>' +
+      st + '</option>').join('');
+  document.getElementById('npNewWrap').hidden = true;
+  document.getElementById('npNewClient').value = '';
+  document.getElementById('psheet').hidden = false;
+  document.getElementById('scrim').hidden = false;
+}
+function closeNewProject() {
+  document.getElementById('psheet').hidden = true;
+  document.getElementById('scrim').hidden = true;
+}
+document.getElementById('npClient').addEventListener('change', function () {
+  document.getElementById('npNewWrap').hidden = this.value !== 'new';
+});
+document.getElementById('npCancel').addEventListener('click', closeNewProject);
+document.getElementById('npSave').addEventListener('click', function () {
+  const name = document.getElementById('npName').value.trim();
+  if (!name) { say('צריך שם לפרויקט'); return; }
+
+  let cid = document.getElementById('npClient').value;
+  if (cid === 'new') {
+    const cname = document.getElementById('npNewClient').value.trim();
+    if (!cname) { say('צריך שם ללקוח החדש'); return; }
+    const c = { id: 'c' + (clients.length + 1), name: cname, phone: '—', address: '—' };
+    clients.push(c);
+    cid = c.id;
+  }
+
+  const pid = 'p' + (projects.length + 1);
+  projects.push({
+    id: pid, name: name, clientId: cid,
+    stage: Number(document.getElementById('npStage').value),
+    live: true,
+    price: parseFloat(document.getElementById('npPrice').value) || 0,
+    days: 0, plannedDays: 0,
+    opened: TODAY,
+    due: document.getElementById('npDue').value || TODAY,
+  });
+
+  closeNewProject();
+  renderProjects();
+  renderPipeline();
+  renderClients();
+  renderMore();
+  openProject(pid);
+  say('הפרויקט נוצר');
+});
+
+/* ---- workshop days + how long the job has been open ---- */
+const DAY_MS = 24 * 60 * 60 * 1000;
+const weeksSince = iso => Math.max(0, Math.floor((new Date(TODAY) - new Date(iso)) / DAY_MS / 7));
+
+function renderWorkshop() {
+  const p = project();
+  const weeks = weeksSince(p.opened);
+  const over  = p.plannedDays && p.days > p.plannedDays;
+
+  document.getElementById('wsRows').innerHTML =
+    '<div><span>בתהליך</span> <span>' +
+      (weeks === 0 ? 'פחות משבוע' : weeks === 1 ? 'שבוע' : weeks + ' שבועות') + '</span></div>' +
+    '<div><span>ימי סדנה שנוצלו</span> <span class="num">' + p.days + '</span></div>' +
+    (p.plannedDays ? '<div><span>ימי סדנה מתוכננים</span> <span class="num">' +
+      p.plannedDays + '</span></div>' : '');
+
+  document.getElementById('wsDays').value = p.days;
+  document.getElementById('wsNote').innerHTML = over
+    ? '<span class="bad">חריגה של ' + (p.days - p.plannedDays) +
+      ' ימי סדנה מעל המתוכנן — כל יום נוסף מעמיס עוד ' + ils(overheadDay()) + ' שכירות על הפרויקט.</span>'
+    : 'כל יום סדנה מעמיס ' + ils(overheadDay()) + ' שכירות על הפרויקט הזה.';
+}
+function setDays(n) {
+  const p = project();
+  p.days = Math.max(0, n);
+  renderWorkshop();
+  renderWorkshopTile();
+}
+document.getElementById('wsPlus').addEventListener('click', function () { setDays(project().days + 1); });
+document.getElementById('wsMinus').addEventListener('click', function () { setDays(project().days - 1); });
+document.getElementById('wsDays').addEventListener('input', function () {
+  setDays(parseFloat(this.value) || 0);
+});
+
+/* The dashboard tile counts the days sitting on live projects. */
+function renderWorkshopTile() {
+  const used = projects.filter(p => p.stage < DONE && !p.lost).reduce((s, p) => s + (p.days || 0), 0);
+  const cap  = SETTINGS.daysPerMonth;
+  document.getElementById('wsUsed').textContent = used;
+  document.getElementById('wsCap').textContent  = 'מתוך ' + cap;
+  document.getElementById('wsBar').style.width  = Math.min(100, used / cap * 100) + '%';
+  document.getElementById('wsFoot').textContent = used >= cap
+    ? 'נוצלו כל ימי הסדנה החודש'
+    : 'נותרו ' + (cap - used) + ' ימים החודש';
+}
+renderWorkshopTile();
+
+/* The hero shows one number; the arithmetic behind it lives on the ledger screen,
+   next to the movements that produced it. */
+document.getElementById('heroToggle').addEventListener('click', function () { go('s-ledger'); });
+document.getElementById('reconToggle').addEventListener('click', function () {
+  const box = document.getElementById('reconBox');
+  box.hidden = !box.hidden;
+  if (!box.hidden) document.getElementById('bankReal').focus();
+});
+
+/* ---- placeholders for screens not built yet ---- */
+const toast = document.getElementById('toast');
+let toastTimer;
+function say(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1900);
+}
+document.querySelectorAll('[data-soon]').forEach(function (b) {
+  b.addEventListener('click', function () { say('המסך הזה עדיין לא נבנה'); });
+});
+/* The (+) is context-aware: inside a project it adds a transaction there. */
+/* What the (+) means depends on the screen. A screen with nothing to add hides it,
+   which is honester than a button that always does the same unrelated thing. */
+const FAB = {
+  's-dashboard': { label: 'הזנה מהירה של הכנסה או הוצאה',
+                   run: function () { currentProject = null; openSheet(); } },
+  's-ledger':    { label: 'תנועה חדשה',
+                   run: function () { currentProject = null; openSheet(); } },
+  's-tx':        { label: 'תנועה חדשה בפרויקט', run: function () { openSheet(); } },
+  's-projects':  { label: 'פרויקט חדש', run: function () { openNewProject(); } },
+  's-quotes':    { label: 'הצעת מחיר חדשה', run: function () { go('s-quote'); } },
+  's-suppliers': { label: 'ספק חדש', run: function () { document.getElementById('suName').focus(); } },
+};
+function setFab(id) {
+  const fab = document.getElementById('fab');
+  const a = FAB[id];
+  fab.hidden = !a;
+  if (a) fab.setAttribute('aria-label', a.label);
+}
+document.getElementById('fab').addEventListener('click', function () {
+  const a = FAB[currentScreen];
+  if (a) a.run();
+});
+setFab(currentScreen);
+</script>
+
+</body>
+</html>
