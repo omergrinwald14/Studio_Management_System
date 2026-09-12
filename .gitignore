@@ -14,7 +14,10 @@
 .DS_Store
 Thumbs.db
 
-# Node, for later phases
+# Node
 node_modules/
 .env
 .env.local
+
+# Vite build output — Cloudflare Pages builds this itself, it never belongs in git
+dist/
