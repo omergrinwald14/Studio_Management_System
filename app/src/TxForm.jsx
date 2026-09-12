@@ -14,6 +14,7 @@ export default function TxForm({
   categories = [],
   recall = {},
   projects = [],
+  defaultProjectId = '', // set when the form is opened from inside a project
   onSaved,
   onDeleted,
   onCancel,
@@ -27,7 +28,9 @@ export default function TxForm({
   const [date, setDate] = useState(tx ? tx.date : todayISO())
   const [description, setDescription] = useState(tx ? tx.description : '')
   const [category, setCategory] = useState(tx ? tx.category || '' : '')
-  const [projectId, setProjectId] = useState(tx && tx.project_id ? String(tx.project_id) : '')
+  const [projectId, setProjectId] = useState(
+    tx && tx.project_id ? String(tx.project_id) : String(defaultProjectId || ''),
+  )
   const [amount, setAmount] = useState(tx ? String(Math.abs(tx.amount)) : '')
   const [capital, setCapital] = useState(tx ? tx.capital : false)
   // once he edits the category himself, stop guessing at it

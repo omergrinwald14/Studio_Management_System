@@ -313,3 +313,18 @@ button.back { background:none; color:var(--ink-muted); padding:0 0 2px;
   font-size:13px; font-weight:500; }
 button.back:hover { color:var(--ink-2); }
 .chev { flex:none; color:var(--ink-muted); font-size:20px; line-height:1; }
+
+/* ---------- project card ---------- */
+.card-title { font-size:20px; font-weight:650; margin:4px 0 14px; letter-spacing:-.01em; }
+.project-card section.card { margin-bottom:16px; }
+.stage-now { margin:0 0 10px; font-size:16px; font-weight:600; }
+.stepper { margin-top:14px; }
+.warn { margin:10px 0 0; color:var(--neg); }
+.card .section-title { margin:0 0 10px; }
+.card + .add-toggle { margin-top:4px; }
+section.card { margin-bottom:16px; }
+
+.projects li { padding:0; overflow:hidden; }
+.projects .row-btn { align-items:stretch; padding:14px 16px; }
+.projects .head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.projects .head .num { flex:none; font-weight:550; }
