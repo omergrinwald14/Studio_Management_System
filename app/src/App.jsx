@@ -1,14 +1,26 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import Login from './Login'
-import Clients from './Clients'
+import Ledger from './Ledger'
+import Projects from './Projects'
+import Settings from './Settings'
 import UserMenu from './UserMenu'
 
-// The root component. Its only job right now is to decide which screen the
-// session warrants: the login form, or the app. Everything else hangs off that.
+// The screens the tab bar switches between. Kept as data so the bar and the
+// router below never disagree about what exists.
+const SCREENS = [
+  { id: 'ledger', title: 'תנועות', render: () => <Ledger /> },
+  { id: 'projects', title: 'פרויקטים', render: () => <Projects /> },
+  { id: 'settings', title: 'הגדרות', render: () => <Settings /> },
+]
+
+// The root component. It decides what the session warrants — the login form or
+// the app — and which screen is showing. Switching by state rather than by URL
+// for now; a router earns its place once a screen needs to be linkable.
 export default function App() {
   const [session, setSession] = useState(null)
   const [checking, setChecking] = useState(true)
+  const [screenId, setScreenId] = useState('ledger')
 
   useEffect(() => {
     // Supabase keeps the session in localStorage, so a refresh should not log
@@ -29,15 +41,30 @@ export default function App() {
   if (checking) return <main className="login"><p>טוען…</p></main>
   if (!session) return <Login />
 
+  const screen = SCREENS.find((s) => s.id === screenId)
+
   return (
-    <main className="login">
-      <header className="top">
-        <h1>לקוחות</h1>
-        <UserMenu email={session.user.email} />
-      </header>
-      <div className="card">
-        <Clients />
-      </div>
-    </main>
+    <>
+      <main className="app">
+        <header className="top">
+          <h1>{screen.title}</h1>
+          <UserMenu email={session.user.email} />
+        </header>
+        {screen.render()}
+      </main>
+
+      <nav className="tabs">
+        {SCREENS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={s.id === screenId ? 'on' : ''}
+            onClick={() => setScreenId(s.id)}
+          >
+            {s.title}
+          </button>
+        ))}
+      </nav>
+    </>
   )
 }
