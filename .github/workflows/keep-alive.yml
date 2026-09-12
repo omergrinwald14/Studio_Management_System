@@ -1,0 +1,34 @@
+# Supabase pauses a free project after 7 days with no activity, and a paused
+# project takes the whole app down until someone restores it by hand. One cheap
+# request a day keeps the clock reset (D4).
+#
+# Daily rather than weekly on purpose: GitHub documents that scheduled runs can
+# be delayed or dropped entirely under load, so a weekly ping has no margin —
+# one missed run would be enough to pause the project.
+name: keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # 06:17 UTC daily; an odd minute avoids the on-the-hour queue
+  workflow_dispatch: # so it can also be triggered by hand from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # RLS refuses this reader, so the row never comes back — which is the
+          # point: the request reaches the database and proves the project is in
+          # use, without the workflow ever holding a key that can read the books.
+          status=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/settings?select=id&limit=1")
+          echo "HTTP $status"
+          # 200 means the database answered. Anything else — 000 for no answer at
+          # all, 5xx for a paused or failing project — should fail loudly here
+          # rather than quietly stop keeping anything alive.
+          [ "$status" = "200" ]
