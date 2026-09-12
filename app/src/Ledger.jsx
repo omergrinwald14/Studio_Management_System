@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatMonth, formatDay, formatDate } from './lib/format'
+import { cashFlowBreakdown, sum } from './lib/finance'
 import TxForm from './TxForm'
 
 // The ledger: every transaction newest first, grouped by month with a subtotal —
@@ -82,14 +83,7 @@ export default function Ledger() {
   // The balance on the dashboard is one number; these are the rows it is made
   // of. They live here rather than on the dashboard because each one is a sum
   // of the ledger below — the breakdown belongs next to what produced it.
-  const counted = settings.opening_date
-    ? txs.filter((tx) => tx.date >= settings.opening_date)
-    : txs
-  const received = sum(counted.filter((tx) => tx.amount > 0 && !tx.capital && !tx.adjust))
-  const ownCapital = sum(counted.filter((tx) => tx.capital))
-  const spent = sum(counted.filter((tx) => tx.amount < 0 && !tx.adjust))
-  const adjustments = sum(counted.filter((tx) => tx.adjust))
-  const balance = Number(settings.opening) + received + ownCapital + spent + adjustments
+  const { received, ownCapital, spent, adjustments, balance } = cashFlowBreakdown(txs, settings)
 
   return (
     <>
@@ -209,7 +203,7 @@ function byNewest(a, b) {
 // The subtotal counts real movement only: a bank reconciliation row (D14) is
 // neither income nor expense, so including it would make the month lie.
 function subtotal(rows) {
-  return rows.reduce((sum, tx) => (tx.adjust ? sum : sum + Number(tx.amount)), 0)
+  return sum(rows.filter((tx) => !tx.adjust))
 }
 
 // [['2026-09', [...]], ['2026-08', [...]]] — already in date order, since the
@@ -222,8 +216,4 @@ function groupByMonth(rows) {
     months.get(key).push(tx)
   }
   return [...months]
-}
-
-function sum(rows) {
-  return rows.reduce((total, tx) => total + Number(tx.amount), 0)
 }

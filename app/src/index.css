@@ -328,3 +328,15 @@ section.card { margin-bottom:16px; }
 .projects .row-btn { align-items:stretch; padding:14px 16px; }
 .projects .head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .projects .head .num { flex:none; font-weight:550; }
+
+/* ---------- workshop-day tiles ---------- */
+.tiles { display:flex; gap:12px; margin-bottom:14px; }
+.tile { flex:1; min-width:0; padding:14px; }
+.tile .label { margin:0; font-size:12.5px; color:var(--ink-muted); }
+.tile .value { margin:4px 0 0; font-size:24px; font-weight:620; }
+.tile .of { font-size:13px; font-weight:450; color:var(--ink-muted); }
+.tile .foot { margin:8px 0 0; font-size:12px; }
+.meter { height:6px; margin-top:10px; border-radius:3px;
+  background:var(--ring); overflow:hidden; }
+.meter i { display:block; height:100%; background:var(--accent); border-radius:3px; }
+.meter i.over { background:var(--neg); }

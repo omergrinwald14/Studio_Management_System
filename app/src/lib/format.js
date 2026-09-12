@@ -60,3 +60,21 @@ export function endOfMonth() {
   const pad = (n) => String(n).padStart(2, '0')
   return `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`
 }
+
+// The Sunday that opens the current week — the Israeli week starts on Sunday,
+// which is also how he counts his own workshop days.
+export function startOfWeek() {
+  const now = new Date()
+  now.setDate(now.getDate() - now.getDay())
+  return isoOf(now)
+}
+
+export function startOfMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+function isoOf(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}

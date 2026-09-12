@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import {
-  formatMoney,
-  formatDate,
-  todayISO,
-  endOfMonth,
-  monthStartsBetween,
-} from './lib/format'
+import { formatMoney, formatDate, todayISO, endOfMonth } from './lib/format'
+import { balanceOf, receivablesOf, expectedMovements } from './lib/finance'
 import { STAGES, DONE } from './lib/stages'
+import WorkshopDays from './WorkshopDays'
 
 // The screen he opens standing in the lumber yard: what is in the account, what
 // is left if he spends this, what is still owed to him and what the balance
@@ -27,7 +23,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('settings').select('opening, opening_date, rent').eq('id', 1).single(),
+      supabase
+        .from('settings')
+        .select('opening, opening_date, rent, days_per_month')
+        .eq('id', 1)
+        .single(),
       supabase.from('txs').select('id, date, amount, capital, adjust, project_id').order('date'),
       // a rejected quote's project is kept as history (lost = true) and owes nothing
       supabase.from('projects').select('id, name, client_id, price, due, stage').eq('lost', false),
@@ -50,16 +50,7 @@ export default function Dashboard() {
   if (error) return <p className="error">{error}</p>
 
   const today = todayISO()
-
-  // Movements before the opening date are already inside the opening figure —
-  // counting them again would double them.
-  const counted = settings.opening_date
-    ? txs.filter((tx) => tx.date >= settings.opening_date)
-    : txs
-
-  // Every row moves the account, reconciliation rows included: an adjustment
-  // exists precisely to bring this number back to what the bank says (D14).
-  const balance = counted.reduce((sum, tx) => sum + Number(tx.amount), Number(settings.opening))
+  const balance = balanceOf(txs, settings)
 
   // The figure is only as current as the last time it was checked against
   // reality — so say which date it speaks for instead of implying "now".
@@ -77,48 +68,17 @@ export default function Dashboard() {
     return client ? client.name : ''
   }
 
-  // What a client has actually paid on a job: money in, on that project, that
-  // came from him — an owner capital injection is cash but it is not payment.
-  function paidOn(projectId) {
-    return txs
-      .filter((tx) => tx.project_id === projectId && tx.amount > 0 && !tx.capital && !tx.adjust)
-      .reduce((sum, tx) => sum + Number(tx.amount), 0)
-  }
+  const receivables = receivablesOf(projects, txs)
+  const receivableTotal = receivables.reduce((total, project) => total + project.due_amount, 0)
 
-  const receivables = projects
-    .filter((project) => project.price != null)
-    .map((project) => ({ ...project, due_amount: Number(project.price) - paidOn(project.id) }))
-    .filter((project) => project.due_amount > 0)
-    .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'))
-
-  const receivableTotal = receivables.reduce((sum, project) => sum + project.due_amount, 0)
-
-  // The forecast is the balance plus what is expected to move before the date:
-  // money owed on jobs, at their collection date, and the rent on the 1st of
-  // each month. Both are commitments already made, which is what makes them
-  // projectable — a pending quote is not, and is kept out on purpose.
-  const expected = [
-    ...receivables
-      .filter((project) => project.due && project.due > today && project.due <= until)
-      .map((project) => ({
-        key: `r${project.id}`,
-        date: project.due,
-        label: project.name,
-        note: clientName(project.client_id),
-        amount: project.due_amount,
-      })),
-    ...(Number(settings.rent) > 0
-      ? monthStartsBetween(today, until).map((date) => ({
-          key: `rent${date}`,
-          date,
-          label: 'שכירות סדנה',
-          note: 'הוצאה קבועה',
-          amount: -Number(settings.rent),
-        }))
-      : []),
-  ].sort((a, b) => a.date.localeCompare(b.date))
-
-  const forecast = expected.reduce((sum, item) => sum + item.amount, balance)
+  const expected = expectedMovements({
+    receivables,
+    rent: settings.rent,
+    today,
+    until,
+    labelFor: (project) => clientName(project.client_id),
+  })
+  const forecast = expected.reduce((total, item) => total + item.amount, balance)
 
   const active = projects.filter((project) => project.stage < DONE).sort((a, b) => b.stage - a.stage)
 
@@ -203,6 +163,8 @@ export default function Dashboard() {
           )}
         </form>
       </section>
+
+      <WorkshopDays daysPerMonth={settings.days_per_month} />
 
       <section className="card forecast">
         <div className="fc-head">

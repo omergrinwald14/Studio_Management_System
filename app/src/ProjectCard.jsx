@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatDate } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
+import { paidOnProject, projectProfit, overheadPerDay, sum } from './lib/finance'
 import TxForm from './TxForm'
 
 // One job, everything about it. The mockup settled the shape: a tabbed card, so
@@ -49,20 +50,16 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
 
   if (loading) return <p>טוען…</p>
 
-  const received = txs
-    .filter((tx) => tx.amount > 0 && !tx.capital && !tx.adjust)
-    .reduce((sum, tx) => sum + Number(tx.amount), 0)
-  const spent = txs
-    .filter((tx) => tx.amount < 0)
-    .reduce((sum, tx) => sum + Number(tx.amount), 0)
+  const received = paidOnProject(txs, project.id)
+  const spent = sum(txs.filter((tx) => tx.amount < 0))
 
   // The calculation his spreadsheet cannot produce (D10): the price, less what
   // the job actually cost, less its share of the rent — a workshop day carries
   // overhead whether or not anything was bought that day.
-  const overheadDay = settings.days_per_month > 0 ? settings.rent / settings.days_per_month : 0
+  const overheadDay = overheadPerDay(settings)
   const overhead = Number(project.days) * overheadDay
   const price = project.price == null ? null : Number(project.price)
-  const profit = price == null ? null : price + spent - overhead
+  const profit = projectProfit(project, txs, settings)
 
   function handleSaved(saved) {
     setTxs([saved, ...txs.filter((tx) => tx.id !== saved.id)].sort((a, b) =>
