@@ -4,21 +4,23 @@ import Login from './Login'
 import Dashboard from './Dashboard'
 import Ledger from './Ledger'
 import Projects from './Projects'
+import Clients from './Clients'
 import Settings from './Settings'
+import More from './More'
 import UserMenu from './UserMenu'
 
-// The screens the tab bar switches between. Kept as data so the bar and the
-// router below never disagree about what exists.
-const SCREENS = [
-  { id: 'home', title: 'בית', render: () => <Dashboard /> },
-  { id: 'ledger', title: 'תנועות', render: () => <Ledger /> },
-  { id: 'projects', title: 'פרויקטים', render: () => <Projects /> },
-  { id: 'settings', title: 'הגדרות', render: () => <Settings /> },
-]
+// Every screen in one table, so the tab bar, the title and the router can never
+// disagree about what exists. `tab` marks the four that earn a place on the bar;
+// the rest live under "עוד" — a phone tab bar stops being thumb-friendly at five.
+const SCREENS = {
+  home: { title: 'בית', tab: true, render: () => <Dashboard /> },
+  ledger: { title: 'תנועות', tab: true, render: () => <Ledger /> },
+  projects: { title: 'פרויקטים', tab: true, render: () => <Projects /> },
+  more: { title: 'עוד', tab: true, render: (go) => <More go={go} /> },
+  clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
+  settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
+}
 
-// The root component. It decides what the session warrants — the login form or
-// the app — and which screen is showing. Switching by state rather than by URL
-// for now; a router earns its place once a screen needs to be linkable.
 export default function App() {
   const [session, setSession] = useState(null)
   const [checking, setChecking] = useState(true)
@@ -43,29 +45,41 @@ export default function App() {
   if (checking) return <main className="login"><p>טוען…</p></main>
   if (!session) return <Login />
 
-  const screen = SCREENS.find((s) => s.id === screenId)
+  const screen = SCREENS[screenId]
+  // A screen reached from the hub highlights the hub's tab, so the bar always
+  // says where you are rather than going blank.
+  const activeTab = screen.parent || screenId
 
   return (
     <>
       <main className="app">
         <header className="top">
-          <h1>{screen.title}</h1>
+          <div>
+            {screen.parent && (
+              <button type="button" className="back" onClick={() => setScreenId(screen.parent)}>
+                → {SCREENS[screen.parent].title}
+              </button>
+            )}
+            <h1>{screen.title}</h1>
+          </div>
           <UserMenu email={session.user.email} />
         </header>
-        {screen.render()}
+        {screen.render(setScreenId)}
       </main>
 
       <nav className="tabs">
-        {SCREENS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={s.id === screenId ? 'on' : ''}
-            onClick={() => setScreenId(s.id)}
-          >
-            {s.title}
-          </button>
-        ))}
+        {Object.entries(SCREENS)
+          .filter(([, s]) => s.tab)
+          .map(([id, s]) => (
+            <button
+              key={id}
+              type="button"
+              className={id === activeTab ? 'on' : ''}
+              onClick={() => setScreenId(id)}
+            >
+              {s.title}
+            </button>
+          ))}
       </nav>
     </>
   )

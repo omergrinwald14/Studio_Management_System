@@ -30,3 +30,33 @@ export function todayISO() {
   const pad = (n) => String(n).padStart(2, '0')
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
+
+// '2026-09-12' -> '12/09/2026', the way he writes a date
+export function formatDate(iso) {
+  const [year, month, day] = iso.split('-')
+  return `${day}/${month}/${year}`
+}
+
+// The 1st of every month strictly after `from` and up to `until`, as ISO dates.
+// Used to place a recurring cost like rent on the forecast timeline.
+export function monthStartsBetween(from, until) {
+  const dates = []
+  const [year, month] = from.split('-').map(Number)
+  let cursor = new Date(year, month - 1, 1)
+  cursor.setMonth(cursor.getMonth() + 1)
+  while (true) {
+    const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-01`
+    if (iso > until) break
+    if (iso > from) dates.push(iso)
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  return dates
+}
+
+// Last day of the current month, the default horizon for the forecast.
+export function endOfMonth() {
+  const now = new Date()
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`
+}

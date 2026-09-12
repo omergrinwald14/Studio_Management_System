@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import { formatMoney, formatMonth, formatDay } from './lib/format'
+import { formatMoney, formatMonth, formatDay, formatDate } from './lib/format'
 import TxForm from './TxForm'
 
 // The ledger: every transaction newest first, grouped by month with a subtotal —
@@ -8,6 +8,7 @@ import TxForm from './TxForm'
 export default function Ledger() {
   const [txs, setTxs] = useState([])
   const [projects, setProjects] = useState([])
+  const [settings, setSettings] = useState(null)
   const [filter, setFilter] = useState('all')
   const [editingId, setEditingId] = useState(null) // null = nothing open, 'new' = the add form
   const [error, setError] = useState('')
@@ -23,12 +24,14 @@ export default function Ledger() {
         .order('date', { ascending: false })
         .order('id', { ascending: false }), // tie-break, so same-day rows keep a stable order
       supabase.from('projects').select('id, name').order('id', { ascending: false }),
-    ]).then(([txsResult, projectsResult]) => {
-      const failure = txsResult.error || projectsResult.error
+      supabase.from('settings').select('opening, opening_date').eq('id', 1).single(),
+    ]).then(([txsResult, projectsResult, settingsResult]) => {
+      const failure = txsResult.error || projectsResult.error || settingsResult.error
       if (failure) setError(failure.message)
       else {
         setTxs(txsResult.data)
         setProjects(projectsResult.data)
+        setSettings(settingsResult.data)
       }
       setLoading(false)
     })
@@ -76,9 +79,56 @@ export default function Ledger() {
 
   const formProps = { descriptions, categories: usedCategories, recall, projects }
 
+  // The balance on the dashboard is one number; these are the rows it is made
+  // of. They live here rather than on the dashboard because each one is a sum
+  // of the ledger below — the breakdown belongs next to what produced it.
+  const counted = settings.opening_date
+    ? txs.filter((tx) => tx.date >= settings.opening_date)
+    : txs
+  const received = sum(counted.filter((tx) => tx.amount > 0 && !tx.capital && !tx.adjust))
+  const ownCapital = sum(counted.filter((tx) => tx.capital))
+  const spent = sum(counted.filter((tx) => tx.amount < 0 && !tx.adjust))
+  const adjustments = sum(counted.filter((tx) => tx.adjust))
+  const balance = Number(settings.opening) + received + ownCapital + spent + adjustments
+
   return (
     <>
       {error && <p className="error">{error}</p>}
+
+      <section className="card breakdown-card">
+        <div className="section-title"><h2>תזרים מזומנים</h2></div>
+        <dl className="breakdown">
+          <div>
+            <dt>
+              יתרת פתיחה
+              {settings.opening_date && ` · ${formatDate(settings.opening_date)}`}
+            </dt>
+            <dd className="num">{formatMoney(settings.opening)}</dd>
+          </div>
+          <div>
+            <dt>התקבל מלקוחות</dt>
+            <dd className="num">{formatMoney(received)}</dd>
+          </div>
+          <div>
+            <dt>הון עצמי שהוזרם</dt>
+            <dd className="num">{formatMoney(ownCapital)}</dd>
+          </div>
+          <div>
+            <dt>סך ההוצאות</dt>
+            <dd className="num">{formatMoney(spent)}</dd>
+          </div>
+          {adjustments !== 0 && (
+            <div>
+              <dt>התאמות לבנק</dt>
+              <dd className="num">{formatMoney(adjustments)}</dd>
+            </div>
+          )}
+        </dl>
+        <div className="total">
+          <span>היתרה בחשבון</span>
+          <span className="num">{formatMoney(balance)}</span>
+        </div>
+      </section>
 
       <div className="chips">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>הכל</Chip>
@@ -172,4 +222,8 @@ function groupByMonth(rows) {
     months.get(key).push(tx)
   }
   return [...months]
+}
+
+function sum(rows) {
+  return rows.reduce((total, tx) => total + Number(tx.amount), 0)
 }

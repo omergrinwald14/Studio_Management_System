@@ -33,8 +33,11 @@ body {
 .card {
   background:var(--surface); border:1px solid var(--ring); border-radius:16px;
   box-shadow:var(--shadow); padding:18px;
-  display:flex; flex-direction:column; gap:14px;
 }
+/* only forms want the evenly-spaced column; a card of prose spaces itself with
+   margins, and making it a flex container blockifies inline-block children —
+   which is what pushed the LTR number box to the far edge of an RTL card */
+form.card { display:flex; flex-direction:column; gap:14px; }
 
 label { display:flex; flex-direction:column; gap:6px; font-size:13.5px; color:var(--ink-2); }
 input {
@@ -55,8 +58,6 @@ button:disabled { opacity:.6; cursor:default; }
 .error { color:var(--neg); font-size:13.5px; margin:0; }
 
 .muted { color:var(--ink-muted); }
-.clients { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
-.clients li { font-size:15px; }
 
 
 .add { display:flex; flex-direction:column; gap:14px;
@@ -249,9 +250,66 @@ button.link { background:none; color:var(--accent); padding:10px 0 0;
   color:var(--ink-muted); margin:0; }
 .section-title .num { font-size:13.5px; font-weight:600; color:var(--ink-2); }
 
-.receivables { list-style:none; margin:0; padding:0;
+.rows { list-style:none; margin:0; padding:0;
   background:var(--surface); border:1px solid var(--ring); border-radius:16px;
   box-shadow:var(--shadow); overflow:hidden; }
-.receivables li { display:flex; align-items:center; gap:12px; padding:12px 16px; }
-.receivables li + li { border-top:1px solid var(--ring); }
-.receivables .num { flex:none; font-weight:550; }
+.rows li { display:flex; align-items:center; gap:12px; padding:12px 16px; }
+.rows li + li { border-top:1px solid var(--ring); }
+.rows .num { flex:none; font-weight:550; }
+
+/* ---------- as-of line ---------- */
+.asof-row { display:flex; align-items:baseline; justify-content:space-between;
+  gap:12px; margin-top:6px; }
+.asof { font-size:12.5px; color:var(--ink-muted); }
+.asof-row .link { padding:0; }
+
+/* ---------- forecast ---------- */
+.forecast { margin-bottom:20px; }
+.fc-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.fc-head input { flex:0 1 150px; padding:7px 10px; font-size:13px; }
+.forecast .value { margin:8px 0 0; font-size:32px; font-weight:620; letter-spacing:-.02em; }
+.small { font-size:12.5px; }
+.fc-list { list-style:none; margin:14px 0 0; padding:14px 0 0;
+  border-top:1px solid var(--ring); display:flex; flex-direction:column; gap:10px; }
+.fc-list li { display:flex; align-items:center; gap:12px; font-size:14px; }
+.fc-list .num { flex:none; font-weight:550; }
+
+.rows li.stacked { flex-direction:column; align-items:stretch; gap:8px; }
+.rows .what { flex:1; min-width:0; }
+.rows li .pipeline { margin:0; }
+
+/* ---------- balance breakdown ---------- */
+.breakdown-card { margin-bottom:20px; }
+.breakdown-card .section-title { margin:0 0 12px; }
+.breakdown { display:grid; gap:8px; margin:0; font-size:13.5px; color:var(--ink-2); }
+.breakdown div { display:flex; justify-content:space-between; gap:12px; }
+.breakdown dt, .breakdown dd { margin:0; }
+.breakdown dd { color:var(--ink); font-weight:550; }
+.total { display:flex; justify-content:space-between; gap:12px;
+  margin-top:12px; padding-top:12px; border-top:1px solid var(--ring);
+  font-size:15px; font-weight:600; }
+
+/* A number is an LTR island. On its own line that makes its text-align resolve
+   to left, which in an RTL card throws it to the opposite edge from its label —
+   so any block-level .num is pinned back to the reading edge. */
+p.num, .value.num, div.num { text-align:start; }
+.forecast .muted.small { margin:4px 0 0; }
+
+/* ---------- expandable client card ---------- */
+.card-body { padding:0 16px 14px; display:flex; flex-direction:column; gap:10px; }
+.contact { color:var(--accent); font-size:14.5px; text-decoration:none;
+  direction:ltr; text-align:start; align-self:flex-start; }
+.card-body .small { margin:0; }
+
+.sublist { list-style:none; margin:0; padding:10px 0 0; border-top:1px solid var(--ring);
+  display:flex; flex-direction:column; gap:10px; }
+.sublist li { display:flex; align-items:center; gap:12px; font-size:14px; }
+.sublist .num { flex:none; font-weight:550; }
+
+.rows li.stacked .row-btn { padding-bottom:10px; }
+
+/* ---------- hub rows + back button ---------- */
+button.back { background:none; color:var(--ink-muted); padding:0 0 2px;
+  font-size:13px; font-weight:500; }
+button.back:hover { color:var(--ink-2); }
+.chev { flex:none; color:var(--ink-muted); font-size:20px; line-height:1; }
