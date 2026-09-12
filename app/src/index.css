@@ -1,111 +1,100 @@
+/* Base tokens and page shell, carried over from the mockup so the real app
+   already looks like the thing the client approved. Light and dark both. */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-muted:#898781;
+  --ring:rgba(11,11,11,0.10);
+  --accent:#2a78d6; --neg:#e34948;
+  --shadow:0 1px 2px rgba(11,11,11,.05), 0 8px 24px -12px rgba(11,11,11,.12);
 }
-
 @media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#898781;
+    --ring:rgba(255,255,255,0.10);
+    --accent:#3987e5; --neg:#e66767;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   }
 }
 
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
 body {
-  margin: 0;
+  background: var(--plane); color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+.login { max-width:420px; margin:0 auto; padding:48px 20px; }
+.login h1 { font-size:19px; font-weight:650; margin:0; letter-spacing:-.01em; }
+
+.card {
+  background:var(--surface); border:1px solid var(--ring); border-radius:16px;
+  box-shadow:var(--shadow); padding:18px;
+  display:flex; flex-direction:column; gap:14px;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+label { display:flex; flex-direction:column; gap:6px; font-size:13.5px; color:var(--ink-2); }
+input {
+  font: inherit; color:var(--ink); background:var(--plane);
+  border:1px solid var(--ring); border-radius:10px; padding:10px 12px;
+  /* email and password are latin, so type them left-to-right inside the RTL page */
+  direction: ltr; text-align: left;
 }
+input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+button {
+  font: inherit; font-weight:550; cursor:pointer;
+  background:var(--accent); color:#fff;
+  border:0; border-radius:10px; padding:11px 16px;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
+button:disabled { opacity:.6; cursor:default; }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
+.error { color:var(--neg); font-size:13.5px; margin:0; }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.muted { color:var(--ink-muted); }
+.clients { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.clients li { font-size:15px; }
+
+
+.add { display:flex; flex-direction:column; gap:14px;
+  margin-top:18px; padding-top:18px; border-top:1px solid var(--ring); }
+/* Hebrew names type right-to-left; the latin-only override lives on the login inputs */
+.add input { direction: rtl; text-align: right; }
+.add input[type="tel"] { direction: ltr; text-align: left; }
+
+/* ---------- header + account menu ---------- */
+.top { display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:16px; }
+
+.user-menu { position:relative; flex:none; }
+.avatar {
+  width:34px; height:34px; padding:0; border-radius:50%;
+  background:var(--surface); color:var(--ink-2);
+  border:1px solid var(--ring); box-shadow:var(--shadow);
+  font-size:14px; font-weight:600; line-height:1;
+  display:grid; place-items:center;
 }
+.avatar:hover { color:var(--ink); }
+
+/* inset-inline-start, not left: it follows the page direction on its own */
+.menu {
+  position:absolute; top:calc(100% + 8px); inset-inline-start:0; z-index:10;
+  min-width:200px; padding:6px;
+  background:var(--surface); border:1px solid var(--ring);
+  border-radius:12px; box-shadow:var(--shadow);
+}
+.menu-email {
+  margin:0; padding:8px 10px; font-size:12.5px; color:var(--ink-muted);
+  direction:ltr; text-align:left;
+  border-bottom:1px solid var(--ring);
+  overflow:hidden; text-overflow:ellipsis;
+}
+.menu button {
+  width:100%; text-align:start; margin-top:4px;
+  background:none; color:var(--ink); font-size:14px; font-weight:450;
+  padding:9px 10px; border-radius:8px;
+}
+.menu button:hover { background:color-mix(in srgb, var(--ink) 6%, transparent); }
