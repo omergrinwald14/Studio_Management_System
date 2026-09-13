@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import { formatMoney, formatDate, todayISO } from './lib/format'
 import { DEPOSIT_STAGE } from './lib/stages'
 import QuoteBuilder from './QuoteBuilder'
+import QuoteDocument from './QuoteDocument'
 
 // Quotes out with clients. A quote is pending until he records an answer, and
 // the answer is what moves the job: accepted pushes the project to מקדמה וסקיצה
@@ -15,6 +16,7 @@ export default function Quotes() {
   const [settings, setSettings] = useState(null)
   const [woodItems, setWoodItems] = useState([])
   const [building, setBuilding] = useState(false)
+  const [showing, setShowing] = useState(null) // the quote being shown as a document
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -26,7 +28,9 @@ export default function Quotes() {
       supabase.from('clients').select('id, name, phone, address').order('name'),
       supabase
         .from('settings')
-        .select('rent, days_per_month, day_rate, rent_day, hourly_rate')
+        .select(
+          'rent, days_per_month, day_rate, rent_day, hourly_rate, business_name, business_phone, business_email, business_id, quote_terms',
+        )
         .eq('id', 1)
         .single(),
       // newest first, so "the last price he quoted for this species" is a plain
@@ -111,6 +115,21 @@ export default function Quotes() {
 
   if (loading) return <p>טוען הצעות…</p>
 
+  // The client-facing document takes over the whole screen: it is the one view
+  // meant to be printed, so nothing else should be on the page around it.
+  if (showing) {
+    const project = projectOf(showing)
+    return (
+      <QuoteDocument
+        quote={showing}
+        project={project}
+        client={clients.find((c) => project && c.id === project.client_id)}
+        settings={settings}
+        onBack={() => setShowing(null)}
+      />
+    )
+  }
+
   const pending = quotes.filter((quote) => !quote.decision)
   const answered = quotes.filter((quote) => quote.decision)
 
@@ -182,6 +201,11 @@ export default function Quotes() {
                       נדחתה
                     </button>
                   </div>
+                  <div className="row">
+                    <button type="button" className="ghost" onClick={() => setShowing(quote)}>
+                      מסמך ללקוח
+                    </button>
+                  </div>
                 </li>
               )
             })}
@@ -199,19 +223,22 @@ export default function Quotes() {
               const project = projectOf(quote)
               return (
                 <li key={quote.id}>
-                  <span className="what">
-                    <span className="desc">{project ? project.name : '—'}</span>
-                    <span className="cat">
-                      {[
-                        clientNameOf(project),
-                        quote.decision === 'accepted' ? 'אושרה' : 'נדחתה',
-                        quote.decided_on ? formatDate(quote.decided_on) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
+                  {/* a settled quote is still a document he may need to resend */}
+                  <button type="button" className="row-btn" onClick={() => setShowing(quote)}>
+                    <span className="what">
+                      <span className="desc">{project ? project.name : '—'}</span>
+                      <span className="cat">
+                        {[
+                          clientNameOf(project),
+                          quote.decision === 'accepted' ? 'אושרה' : 'נדחתה',
+                          quote.decided_on ? formatDate(quote.decided_on) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
                     </span>
-                  </span>
-                  <span className="num">{formatMoney(quote.price)}</span>
+                    <span className="num">{formatMoney(quote.price)}</span>
+                  </button>
                 </li>
               )
             })}

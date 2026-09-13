@@ -15,7 +15,7 @@ export default function Settings() {
     // One row, pinned to id 1 by a check constraint — there is one studio.
     supabase
       .from('settings')
-      .select('opening, opening_date, rent, rent_day, days_per_month, day_rate, hourly_rate')
+      .select('opening, opening_date, rent, rent_day, days_per_month, day_rate, hourly_rate, business_name, business_phone, business_email, business_id, quote_terms')
       .eq('id', 1)
       .single()
       .then(({ data, error }) => {
@@ -44,6 +44,11 @@ export default function Settings() {
         days_per_month: Number(values.days_per_month) || 0,
         day_rate: Number(values.day_rate) || 0,
         hourly_rate: Number(values.hourly_rate) || 0,
+        business_name: values.business_name?.trim() || null,
+        business_phone: values.business_phone?.trim() || null,
+        business_email: values.business_email?.trim() || null,
+        business_id: values.business_id?.trim() || null,
+        quote_terms: values.quote_terms?.trim() || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1)
@@ -140,6 +145,52 @@ export default function Settings() {
         תקורת יום סדנה: <span className="num">{formatMoney(overheadDay)}</span>
         <span className="muted"> — שכירות חלקי ימי סדנה</span>
       </p>
+
+      {/* Only these leave the building — they head every quote he sends out. */}
+      <div className="items">
+        <p className="menu-label">פרטי העסק — מופיעים בהצעות ללקוח</p>
+        <label>
+          שם העסק
+          <input
+            value={values.business_name ?? ''}
+            onChange={(e) => set('business_name', e.target.value)}
+          />
+        </label>
+        <div className="row">
+          <label>
+            טלפון
+            <input
+              type="tel"
+              value={values.business_phone ?? ''}
+              onChange={(e) => set('business_phone', e.target.value)}
+            />
+          </label>
+          <label>
+            מספר עוסק
+            <input
+              value={values.business_id ?? ''}
+              onChange={(e) => set('business_id', e.target.value)}
+            />
+          </label>
+        </div>
+        <label>
+          אימייל
+          <input
+            type="email"
+            value={values.business_email ?? ''}
+            onChange={(e) => set('business_email', e.target.value)}
+          />
+        </label>
+        <label>
+          תנאים קבועים בתחתית ההצעה
+          <textarea
+            rows="3"
+            value={values.quote_terms ?? ''}
+            onChange={(e) => set('quote_terms', e.target.value)}
+            placeholder="תנאי תשלום, תוקף ההצעה, הערות"
+          />
+        </label>
+      </div>
 
       {error && <p className="error">{error}</p>}
 
