@@ -143,11 +143,10 @@ export function sum(rows) {
 }
 
 /**
- * What a job will cost before any profit: materials, his own days, and the rent
+ * What a job will cost before any profit: materials, his own time, and the rent
  * those days consume. The overhead term is the one his spreadsheet never had —
  * a workshop day costs him money whether or not he bought anything that day.
- */
-/**
+ *
  * `plannedDays` always feeds overhead — the workshop is occupied for that many
  * days whichever way the labour itself is priced. Labour is either days × his
  * own day rate, or (when `hours` is given) an employee's hours × an hourly
@@ -175,4 +174,43 @@ export function suggestedPrice(cost, markup) {
  */
 export function componentPrice(cost, markup, discountPercent = 0) {
   return Math.round(suggestedPrice(cost, markup) * (1 - Number(discountPercent || 0) / 100))
+}
+
+/**
+ * Every rent day from the opening date through today, inclusive.
+ *
+ * The opening date is the right anchor rather than the day the business opened:
+ * anything before it is already inside the opening balance (D11), so generating
+ * rent for those months would charge him twice for the same rent.
+ */
+export function rentDatesDue({ openingDate, rentDay, today }) {
+  if (!openingDate || !rentDay) return []
+  const dates = []
+  const [year, month] = openingDate.split('-').map(Number)
+  const cursor = new Date(year, month - 1, 1)
+  const day = String(rentDay).padStart(2, '0')
+
+  while (true) {
+    const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${day}`
+    if (iso > today) break
+    if (iso >= openingDate) dates.push(iso)
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  return dates
+}
+
+/**
+ * Rent days with no rent transaction booked against them yet.
+ *
+ * Matching is by month rather than by exact date on purpose: if he already
+ * entered August's rent by hand on the 12th, that month is paid and a second
+ * row would be a duplicate, not a correction.
+ */
+export function missingRentDates({ txs, openingDate, rentDay, today, category = 'שכירות' }) {
+  const booked = new Set(
+    txs.filter((tx) => tx.category === category).map((tx) => tx.date.slice(0, 7)),
+  )
+  return rentDatesDue({ openingDate, rentDay, today }).filter(
+    (date) => !booked.has(date.slice(0, 7)),
+  )
 }

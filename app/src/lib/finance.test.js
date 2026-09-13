@@ -13,6 +13,8 @@ import {
   suggestedPrice,
   componentPrice,
   spentOnProject,
+  rentDatesDue,
+  missingRentDates,
 } from './finance.js'
 
 // Node runs these with `npm test` — no framework, no dependency to keep current.
@@ -214,4 +216,35 @@ test('an older row with no share set belongs wholly to its project', () => {
 test('a part-attributed client payment credits the job only its share', () => {
   const rows = [{ amount: 1000, project_id: 1, project_share: 40, capital: false, adjust: false }]
   assert.equal(paidOnProject(rows, 1), 400)
+})
+
+test('rent is due every month from the opening date to today', () => {
+  assert.deepEqual(
+    rentDatesDue({ openingDate: '2026-08-01', rentDay: 10, today: '2026-09-13' }),
+    ['2026-08-10', '2026-09-10'],
+  )
+})
+
+test('a rent day before the opening date is already inside the opening balance', () => {
+  // opened mid-August, so August's 10th is behind him and must not be charged
+  assert.deepEqual(
+    rentDatesDue({ openingDate: '2026-08-20', rentDay: 10, today: '2026-10-13' }),
+    ['2026-09-10', '2026-10-10'],
+  )
+})
+
+test('this month counts only once its rent day has arrived', () => {
+  assert.deepEqual(
+    rentDatesDue({ openingDate: '2026-08-01', rentDay: 10, today: '2026-09-09' }),
+    ['2026-08-10'],
+  )
+})
+
+test('a month already booked by hand is not offered again', () => {
+  const rows = [{ date: '2026-08-12', category: 'שכירות', amount: -1800 }]
+  assert.deepEqual(
+    missingRentDates({ txs: rows, openingDate: '2026-08-01', rentDay: 10, today: '2026-09-13' }),
+    ['2026-09-10'],
+    'August was entered on the 12th — that month is paid',
+  )
 })

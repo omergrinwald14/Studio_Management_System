@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import { formatMoney, formatMonth, formatDay, formatDate } from './lib/format'
-import { cashFlowBreakdown, sum } from './lib/finance'
+import { formatMoney, formatMonth, formatDay, formatDate, todayISO } from './lib/format'
+import { cashFlowBreakdown, sum, missingRentDates } from './lib/finance'
 import TxForm from './TxForm'
 
 // The ledger: every transaction newest first, grouped by month with a subtotal —
@@ -13,6 +13,7 @@ export default function Ledger() {
   const [filter, setFilter] = useState('all')
   const [editingId, setEditingId] = useState(null) // null = nothing open, 'new' = the add form
   const [error, setError] = useState('')
+  const [bookingRent, setBookingRent] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function Ledger() {
         .order('date', { ascending: false })
         .order('id', { ascending: false }), // tie-break, so same-day rows keep a stable order
       supabase.from('projects').select('id, name').order('id', { ascending: false }),
-      supabase.from('settings').select('opening, opening_date').eq('id', 1).single(),
+      supabase.from('settings').select('opening, opening_date, rent, rent_day').eq('id', 1).single(),
     ]).then(([txsResult, projectsResult, settingsResult]) => {
       const failure = txsResult.error || projectsResult.error || settingsResult.error
       if (failure) setError(failure.message)
@@ -85,6 +86,36 @@ export default function Ledger() {
   // of the ledger below — the breakdown belongs next to what produced it.
   const { received, ownCapital, spent, adjustments, balance } = cashFlowBreakdown(txs, settings)
 
+  // Rent is the one movement the system can know about without being told: it
+  // is the same amount, on the same day, every month. It is still offered
+  // rather than inserted silently — a row that appears on its own in his books
+  // is a row he cannot trust, and he may have paid a different amount.
+  const missingRent = missingRentDates({
+    txs,
+    openingDate: settings.opening_date,
+    rentDay: settings.rent_day,
+    today: todayISO(),
+  })
+
+  async function bookRent() {
+    setBookingRent(true)
+    const { data, error } = await supabase
+      .from('txs')
+      .insert(
+        missingRent.map((date) => ({
+          date,
+          description: 'שכירות סדנה',
+          category: 'שכירות',
+          amount: -Number(settings.rent),
+        })),
+      )
+      .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+
+    if (error) setError(error.message)
+    else setTxs([...data, ...txs].sort(byNewest))
+    setBookingRent(false)
+  }
+
   return (
     <>
       {error && <p className="error">{error}</p>}
@@ -123,6 +154,19 @@ export default function Ledger() {
           <span className="num">{formatMoney(balance)}</span>
         </div>
       </section>
+
+      {missingRent.length > 0 && Number(settings.rent) > 0 && (
+        <section className="card notice">
+          <p className="note">
+            חסרות {missingRent.length === 1 ? 'תנועת שכירות אחת' : `${missingRent.length} תנועות שכירות`}
+            {' — '}
+            {missingRent.map((date) => formatDate(date)).join(', ')}
+          </p>
+          <button type="button" onClick={bookRent} disabled={bookingRent}>
+            {bookingRent ? 'רושם…' : `רישום ${formatMoney(-settings.rent)} לכל חודש`}
+          </button>
+        </section>
+      )}
 
       <div className="chips">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>הכל</Chip>

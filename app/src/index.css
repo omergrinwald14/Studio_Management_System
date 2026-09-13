@@ -467,3 +467,8 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
   .doc { border:0; border-radius:0; padding:0; }
   @page { margin:16mm; }
 }
+
+/* a standing offer the system makes — not an error, not a plain row */
+.notice { display:flex; flex-direction:column; gap:12px; margin-bottom:20px;
+  border-inline-start:4px solid var(--accent); }
+.notice .note { margin:0; }
