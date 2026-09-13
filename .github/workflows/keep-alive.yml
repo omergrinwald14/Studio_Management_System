@@ -21,16 +21,17 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # RLS refuses this reader, so the row never comes back — which is the
-          # point: the request reaches the database and proves the project is in
-          # use, without the workflow ever holding a key that can read the books.
+          # public.ping is the one table a signed-out reader may see, and it holds
+          # nothing but a timestamp. Every other table still refuses this key, so
+          # the workflow proves the database is awake without being able to read
+          # a single figure from the books.
           # Both headers, not just apikey: a publishable key (sb_publishable_…)
           # is rejected with 401 unless it is also presented as the bearer token.
           # supabase-js sends both, which is why the browser never sees this.
           status=$(curl -s -o /dev/null -w '%{http_code}' \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/settings?select=id&limit=1")
+            "$SUPABASE_URL/rest/v1/ping?select=id&limit=1")
           echo "HTTP $status"
           # 200 means the database answered. Anything else — 000 for no answer at
           # all, 5xx for a paused or failing project — should fail loudly here
