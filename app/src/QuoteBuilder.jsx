@@ -1,18 +1,43 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, todayISO } from './lib/format'
 import { quoteCost, suggestedPrice, overheadPerDay } from './lib/finance'
 import { QUOTE_STAGE } from './lib/stages'
 
+const DEFAULT_CONSUMABLES = 150
+
 // The quote builder costs the job before it prices it. That order is the whole
 // point: his spreadsheet priced from feel, and the bench that started this
 // project sold for less than the wood, the consumables and the rent it used.
-export default function QuoteBuilder({ clients, settings, onSaved, onClientAdded, onCancel }) {
+//
+// Costing used to be an open-ended list of material rows — flexible, and too
+// slow for something he fills in standing in a lumber yard. It is now two fixed
+// lines instead: מתכלים defaults to what he actually spends and rarely changes,
+// and עץ is the one number that does — species, quantity in קוב, price per קוב.
+export default function QuoteBuilder({
+  clients,
+  settings,
+  woodSpecies = [],
+  woodPriceRecall = {},
+  onSaved,
+  onClientAdded,
+  onCancel,
+}) {
+  const listId = useId()
+
   const [name, setName] = useState('')
   const [clientId, setClientId] = useState(clients.length ? String(clients[0].id) : 'new')
   const [newClient, setNewClient] = useState('')
   const [newPhone, setNewPhone] = useState('')
-  const [items, setItems] = useState([{ name: '', qty: 1, unit_cost: '', supplier: '', thickness: '' }])
+  const [newAddress, setNewAddress] = useState('')
+
+  const [consumables, setConsumables] = useState(String(DEFAULT_CONSUMABLES))
+  const [woodName, setWoodName] = useState('')
+  const [woodQty, setWoodQty] = useState('')
+  const [woodPrice, setWoodPrice] = useState('')
+  // once he edits the price himself, stop overwriting it with the recalled one
+  const [woodPriceTouched, setWoodPriceTouched] = useState(false)
+
   const [plannedDays, setPlannedDays] = useState('')
   const [dayRate, setDayRate] = useState(String(settings.day_rate ?? ''))
   const [markup, setMarkup] = useState('25')
@@ -24,15 +49,28 @@ export default function QuoteBuilder({ clients, settings, onSaved, onClientAdded
   const [busy, setBusy] = useState(false)
 
   const overheadDay = overheadPerDay(settings)
-  const cost = quoteCost({ items, plannedDays, dayRate, overheadDay })
+  const cost = quoteCost({
+    items: [
+      { qty: 1, unit_cost: consumables },
+      { qty: woodQty, unit_cost: woodPrice },
+    ],
+    plannedDays,
+    dayRate,
+    overheadDay,
+  })
   const suggestion = suggestedPrice(cost.total, markup)
   // Until he types a price of his own, the markup drives it — after that the
   // price is his and the markup stops overwriting it.
   const finalPrice = priceTouched && price !== '' ? Number(price) : suggestion
   const belowCost = finalPrice < cost.total
 
-  function setItem(index, field, value) {
-    setItems(items.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
+  // A species he has quoted before already carries an answer to "how much per
+  // קוב?" — reuse it instead of asking the same question twice.
+  function handleWoodName(value) {
+    setWoodName(value)
+    if (!woodPriceTouched && woodPriceRecall[value] != null) {
+      setWoodPrice(String(woodPriceRecall[value]))
+    }
   }
 
   async function handleSubmit(event) {
@@ -44,7 +82,11 @@ export default function QuoteBuilder({ clients, settings, onSaved, onClientAdded
     if (clientId === 'new') {
       const { data, error } = await supabase
         .from('clients')
-        .insert({ name: newClient.trim(), phone: newPhone.trim() || null })
+        .insert({
+          name: newClient.trim(),
+          phone: newPhone.trim() || null,
+          address: newAddress.trim() || null,
+        })
         .select('id, name, phone, address')
         .single()
       if (error) return fail(error)
@@ -88,23 +130,33 @@ export default function QuoteBuilder({ clients, settings, onSaved, onClientAdded
       .single()
     if (quoteError) return fail(quoteError)
 
-    const lines = items
-      .filter((item) => item.name.trim())
-      .map((item) => ({
+    const lines = []
+    if (Number(consumables) > 0) {
+      lines.push({ quote_id: quote.id, name: 'מתכלים', qty: 1, unit_cost: Number(consumables) })
+    }
+    if (woodName.trim() && Number(woodQty) > 0) {
+      lines.push({
         quote_id: quote.id,
-        name: item.name.trim(),
-        qty: Number(item.qty) || 1,
-        unit_cost: Number(item.unit_cost) || 0,
-        supplier: item.supplier.trim() || null,
-        thickness: item.thickness === '' ? null : Number(item.thickness),
-      }))
+        name: woodName.trim(),
+        qty: Number(woodQty),
+        unit_cost: Number(woodPrice) || 0,
+      })
+    }
+
+    let savedItems = []
     if (lines.length) {
-      const { error: itemsError } = await supabase.from('quote_items').insert(lines)
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('quote_items')
+        .insert(lines)
+        .select('*')
       if (itemsError) return fail(itemsError)
+      savedItems = itemsData
     }
 
     setBusy(false)
-    onSaved({ ...quote, project })
+    // only the wood line feeds next time's species suggestions — מתכלים is not
+    // a species, and Quotes.jsx already excludes it from what it fetches
+    onSaved({ ...quote, project, items: savedItems.filter((item) => item.name !== 'מתכלים') })
 
     function fail(failure) {
       setError(failure.message)
@@ -134,87 +186,78 @@ export default function QuoteBuilder({ clients, settings, onSaved, onClientAdded
       </label>
 
       {clientId === 'new' && (
-        <div className="row">
+        <>
+          <div className="row">
+            <label>
+              שם הלקוח
+              <input value={newClient} onChange={(e) => setNewClient(e.target.value)} required />
+            </label>
+            <label>
+              טלפון
+              <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+            </label>
+          </div>
           <label>
-            שם הלקוח
-            <input value={newClient} onChange={(e) => setNewClient(e.target.value)} required />
+            כתובת להובלה / התקנה
+            <input value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
           </label>
-          <label>
-            טלפון
-            <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-          </label>
-        </div>
+        </>
       )}
 
       <div className="items">
-        <p className="menu-label">חומרים</p>
-        {items.map((item, index) => (
-          <div className="item" key={index}>
-            <label>
-              פריט
-              <input value={item.name} onChange={(e) => setItem(index, 'name', e.target.value)} />
-            </label>
-            <div className="row">
-              <label>
-                כמות
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={item.qty}
-                  onChange={(e) => setItem(index, 'qty', e.target.value)}
-                />
-              </label>
-              <label>
-                מחיר ליחידה
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={item.unit_cost}
-                  onChange={(e) => setItem(index, 'unit_cost', e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="row">
-              <label>
-                ספק
-                <input
-                  value={item.supplier}
-                  onChange={(e) => setItem(index, 'supplier', e.target.value)}
-                />
-              </label>
-              <label>
-                עובי מתוכנן (מ"מ)
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={item.thickness}
-                  onChange={(e) => setItem(index, 'thickness', e.target.value)}
-                />
-              </label>
-            </div>
-            {items.length > 1 && (
-              <button
-                type="button"
-                className="danger"
-                onClick={() => setItems(items.filter((_, i) => i !== index))}
-              >
-                הסרת שורה
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          type="button"
-          className="ghost"
-          onClick={() =>
-            setItems([...items, { name: '', qty: 1, unit_cost: '', supplier: '', thickness: '' }])
-          }
-        >
-          + שורת חומר
-        </button>
+        <p className="menu-label">עלות החומרים</p>
+
+        <label>
+          חומרים מתכלים
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={consumables}
+            onChange={(e) => setConsumables(e.target.value)}
+          />
+        </label>
+
+        <label>
+          סוג עץ
+          <input
+            value={woodName}
+            onChange={(e) => handleWoodName(e.target.value)}
+            list={`${listId}-species`}
+          />
+          <datalist id={`${listId}-species`}>
+            {woodSpecies.map((species) => (
+              <option key={species} value={species} />
+            ))}
+          </datalist>
+        </label>
+
+        <div className="row">
+          <label>
+            כמות (קו"ב)
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={woodQty}
+              onChange={(e) => setWoodQty(e.target.value)}
+            />
+          </label>
+          <label>
+            מחיר לקו"ב
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              value={woodPrice}
+              onChange={(e) => {
+                setWoodPriceTouched(true)
+                setWoodPrice(e.target.value)
+              }}
+            />
+          </label>
+        </div>
       </div>
 
       <div className="row">

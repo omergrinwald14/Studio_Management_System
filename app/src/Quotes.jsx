@@ -13,6 +13,7 @@ export default function Quotes() {
   const [projects, setProjects] = useState([])
   const [clients, setClients] = useState([])
   const [settings, setSettings] = useState(null)
+  const [woodItems, setWoodItems] = useState([])
   const [building, setBuilding] = useState(false)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -23,20 +24,42 @@ export default function Quotes() {
       supabase.from('quotes').select('*').order('id', { ascending: false }),
       supabase.from('projects').select('id, name, client_id, stage, price, lost'),
       supabase.from('clients').select('id, name, phone, address').order('name'),
-      supabase.from('settings').select('rent, days_per_month, day_rate').eq('id', 1).single(),
-    ]).then(([quotesResult, projectsResult, clientsResult, settingsResult]) => {
+      supabase.from('settings').select('rent, days_per_month, day_rate, rent_day').eq('id', 1).single(),
+      // newest first, so "the last price he quoted for this species" is a plain
+      // first-match — the same recall trick TxForm uses for categories
+      supabase
+        .from('quote_items')
+        .select('name, unit_cost')
+        .neq('name', 'מתכלים')
+        .order('id', { ascending: false }),
+    ]).then(([quotesResult, projectsResult, clientsResult, settingsResult, itemsResult]) => {
       const failure =
-        quotesResult.error || projectsResult.error || clientsResult.error || settingsResult.error
+        quotesResult.error ||
+        projectsResult.error ||
+        clientsResult.error ||
+        settingsResult.error ||
+        itemsResult.error
       if (failure) setError(failure.message)
       else {
         setQuotes(quotesResult.data)
         setProjects(projectsResult.data)
         setClients(clientsResult.data)
         setSettings(settingsResult.data)
+        setWoodItems(itemsResult.data)
       }
       setLoading(false)
     })
   }, [])
+
+  // Every wood species he has ever priced becomes a suggestion; the price he
+  // charged for it last time fills in automatically until he edits it himself.
+  const woodSpecies = [...new Set(woodItems.map((item) => item.name))].sort((a, b) =>
+    a.localeCompare(b, 'he'),
+  )
+  const woodPriceRecall = {}
+  for (const item of woodItems) {
+    if (!(item.name in woodPriceRecall)) woodPriceRecall[item.name] = item.unit_cost
+  }
 
   function projectOf(quote) {
     return projects.find((project) => project.id === quote.project_id)
@@ -95,9 +118,12 @@ export default function Quotes() {
         <QuoteBuilder
           clients={clients}
           settings={settings}
-          onSaved={({ project, ...quote }) => {
+          woodSpecies={woodSpecies}
+          woodPriceRecall={woodPriceRecall}
+          onSaved={({ project, items, ...quote }) => {
             setQuotes([quote, ...quotes])
             setProjects([project, ...projects])
+            setWoodItems([...items, ...woodItems])
             setBuilding(false)
           }}
           onClientAdded={(client) => setClients([...clients, client])}
