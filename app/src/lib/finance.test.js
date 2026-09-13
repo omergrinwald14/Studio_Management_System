@@ -9,6 +9,8 @@ import {
   expectedMovements,
   overheadPerDay,
   projectProfit,
+  quoteCost,
+  suggestedPrice,
 } from './finance.js'
 
 // Node runs these with `npm test` — no framework, no dependency to keep current.
@@ -122,4 +124,29 @@ test('project profit is price less real costs less the rent it used', () => {
 
 test('there is no profit to state before there is a price', () => {
   assert.equal(projectProfit({ id: 1, price: null, days: 2 }, txs, settings), null)
+})
+
+test('a quote costs materials, days and the rent those days use', () => {
+  const cost = quoteCost({
+    items: [
+      { qty: 2, unit_cost: 400 },
+      { qty: 1, unit_cost: 64 },
+    ],
+    plannedDays: 4,
+    dayRate: 600,
+    overheadDay: 225,
+  })
+  assert.equal(cost.materials, 864)
+  assert.equal(cost.labour, 2400)
+  assert.equal(cost.overhead, 900, 'four days of workshop rent, whatever was bought')
+  assert.equal(cost.total, 4164)
+})
+
+test('an empty quote costs nothing rather than NaN', () => {
+  assert.deepEqual(quoteCost({}), { materials: 0, labour: 0, overhead: 0, total: 0 })
+})
+
+test('the suggested price is cost plus markup', () => {
+  assert.equal(suggestedPrice(4164, 25), 5205)
+  assert.equal(suggestedPrice(1000, 0), 1000)
 })

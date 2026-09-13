@@ -122,3 +122,23 @@ export function projectProfit(project, txs, settings) {
 export function sum(rows) {
   return rows.reduce((total, tx) => total + Number(tx.amount), 0)
 }
+
+/**
+ * What a job will cost before any profit: materials, his own days, and the rent
+ * those days consume. The overhead term is the one his spreadsheet never had —
+ * a workshop day costs him money whether or not he bought anything that day.
+ */
+export function quoteCost({ items = [], plannedDays = 0, dayRate = 0, overheadDay = 0 }) {
+  const materials = items.reduce(
+    (total, item) => total + Number(item.qty || 0) * Number(item.unit_cost || 0),
+    0,
+  )
+  const labour = Number(plannedDays) * Number(dayRate)
+  const overhead = Number(plannedDays) * Number(overheadDay)
+  return { materials, labour, overhead, total: materials + labour + overhead }
+}
+
+/** Cost plus a markup percentage, to the nearest shekel. */
+export function suggestedPrice(cost, markup) {
+  return Math.round(Number(cost) * (1 + Number(markup || 0) / 100))
+}

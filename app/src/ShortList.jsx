@@ -17,7 +17,14 @@ export default function ShortList({ items, rows = 4, onAll, allLabel, children }
       <ul className="rows">{items.slice(0, rows).map(children)}</ul>
       {onAll && rest > 0 && (
         <button type="button" className="all-btn" onClick={onAll}>
-          {allLabel} ({rest} נוספים) ←
+          {allLabel}
+          {/* drawn rather than typed: the arrow glyph sits on its own baseline
+              in the system font and lands below the text it belongs to */}
+          <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"
+               fill="none" stroke="currentColor" strokeWidth="2.2"
+               strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
         </button>
       )}
     </>

@@ -14,3 +14,8 @@ export const STAGES = [
 ]
 
 export const DONE = STAGES.length - 1
+
+// Named so the quote flow reads as intent rather than as magic numbers: a saved
+// quote parks its project here, and accepting it moves the project on by one.
+export const QUOTE_STAGE = STAGES.indexOf('הצעת מחיר')
+export const DEPOSIT_STAGE = STAGES.indexOf('מקדמה וסקיצה')

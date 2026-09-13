@@ -51,6 +51,11 @@ export default function Projects({ openId: initialOpenId = null }) {
     setProjects(projects.map((project) => (project.id === updated.id ? updated : project)))
   }
 
+  function handleDeleted(id) {
+    setProjects(projects.filter((project) => project.id !== id))
+    setOpenId(null) // the card he was standing on no longer exists
+  }
+
   if (loading) return <p>טוען פרויקטים…</p>
 
   const open = projects.find((project) => project.id === openId)
@@ -61,6 +66,7 @@ export default function Projects({ openId: initialOpenId = null }) {
         client={findClient(open.client_id)}
         onBack={() => setOpenId(null)}
         onChanged={handleChanged}
+        onDeleted={handleDeleted}
       />
     )
   }

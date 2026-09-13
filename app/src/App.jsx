@@ -5,6 +5,7 @@ import Dashboard from './Dashboard'
 import Ledger from './Ledger'
 import Projects from './Projects'
 import Clients from './Clients'
+import Quotes from './Quotes'
 import Settings from './Settings'
 import More from './More'
 import UserMenu from './UserMenu'
@@ -20,6 +21,7 @@ const SCREENS = {
   ledger: { title: 'תנועות', tab: true, render: () => <Ledger /> },
   projects: { title: 'פרויקטים', tab: true, render: (go, arg) => <Projects openId={arg} /> },
   more: { title: 'עוד', tab: true, render: (go) => <More go={go} /> },
+  quotes: { title: 'הצעות מחיר', parent: 'more', render: () => <Quotes /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
 }

@@ -8,13 +8,14 @@ import TxForm from './TxForm'
 // One job, everything about it. The mockup settled the shape: a tabbed card, so
 // the pipeline, the money and (later) the materials, lessons, journal and photos
 // all live behind one project rather than scattered across screens.
-export default function ProjectCard({ project: initial, client, onBack, onChanged }) {
+export default function ProjectCard({ project: initial, client, onBack, onChanged, onDeleted }) {
   const [project, setProject] = useState(initial)
   const [tab, setTab] = useState('details')
   const [txs, setTxs] = useState([])
   const [settings, setSettings] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -60,6 +61,25 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
   const overhead = Number(project.days) * overheadDay
   const price = project.price == null ? null : Number(project.price)
   const profit = projectProfit(project, txs, settings)
+
+  // Deleting is the one action here with no undo — the free Supabase tier takes
+  // no backups (D4) — so the confirmation names the two consequences rather than
+  // asking "are you sure": the quote goes with the project, and its transactions
+  // do not. They fall back to the כללי / סדנה bucket, because the money left the
+  // account whatever happened to the job.
+  async function handleDelete() {
+    const consequences = [`הפרויקט "${project.name}" יימחק לצמיתות.`]
+    if (txs.length) consequences.push(`${txs.length} תנועות יישארו בספר ויעברו לכללי / סדנה.`)
+    consequences.push('הצעת המחיר שלו, אם קיימת, תימחק איתו.')
+    if (!window.confirm(consequences.join('\n'))) return
+
+    setBusy(true)
+    const { error } = await supabase.from('projects').delete().eq('id', project.id)
+    if (error) {
+      setError(error.message)
+      setBusy(false)
+    } else onDeleted(project.id)
+  }
 
   function handleSaved(saved) {
     setTxs([saved, ...txs.filter((tx) => tx.id !== saved.id)].sort((a, b) =>
@@ -179,6 +199,12 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
                 תקורה נוספת
               </p>
             )}
+          </section>
+
+          <section>
+            <button type="button" className="danger wide" onClick={handleDelete} disabled={busy}>
+              {busy ? 'מוחק…' : 'מחיקת הפרויקט'}
+            </button>
           </section>
         </>
       ) : (

@@ -1,6 +1,7 @@
 // The hub for everything that does not deserve a tab of its own. It exists so
 // the bottom bar stays at four thumb-sized targets however much the system grows.
 const ITEMS = [
+  { id: 'quotes', title: 'הצעות מחיר', note: 'תמחור פרויקט חדש ומעקב אחרי תשובות' },
   { id: 'clients', title: 'לקוחות', note: 'פרטי קשר וכל מה שנבנה עבורם' },
   { id: 'settings', title: 'הגדרות', note: 'יתרת פתיחה, שכירות, ימי סדנה, תעריף יום' },
 ]
