@@ -15,7 +15,7 @@ export default function Settings() {
     // One row, pinned to id 1 by a check constraint — there is one studio.
     supabase
       .from('settings')
-      .select('opening, opening_date, rent, rent_day, days_per_month, day_rate')
+      .select('opening, opening_date, rent, rent_day, days_per_month, day_rate, hourly_rate')
       .eq('id', 1)
       .single()
       .then(({ data, error }) => {
@@ -43,6 +43,7 @@ export default function Settings() {
         rent_day: Number(values.rent_day) || 1,
         days_per_month: Number(values.days_per_month) || 0,
         day_rate: Number(values.day_rate) || 0,
+        hourly_rate: Number(values.hourly_rate) || 0,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1)
@@ -114,15 +115,26 @@ export default function Settings() {
         />
       </label>
 
-      <label>
-        תעריף יום עבודה
-        <input
-          type="number"
-          inputMode="decimal"
-          value={values.day_rate ?? ''}
-          onChange={(e) => set('day_rate', e.target.value)}
-        />
-      </label>
+      <div className="row">
+        <label>
+          תעריף יום עבודה
+          <input
+            type="number"
+            inputMode="decimal"
+            value={values.day_rate ?? ''}
+            onChange={(e) => set('day_rate', e.target.value)}
+          />
+        </label>
+        <label>
+          תעריף עובד לשעה
+          <input
+            type="number"
+            inputMode="decimal"
+            value={values.hourly_rate ?? ''}
+            onChange={(e) => set('hourly_rate', e.target.value)}
+          />
+        </label>
+      </div>
 
       <p className="note">
         תקורת יום סדנה: <span className="num">{formatMoney(overheadDay)}</span>

@@ -24,7 +24,11 @@ export default function Quotes() {
       supabase.from('quotes').select('*').order('id', { ascending: false }),
       supabase.from('projects').select('id, name, client_id, stage, price, lost'),
       supabase.from('clients').select('id, name, phone, address').order('name'),
-      supabase.from('settings').select('rent, days_per_month, day_rate, rent_day').eq('id', 1).single(),
+      supabase
+        .from('settings')
+        .select('rent, days_per_month, day_rate, rent_day, hourly_rate')
+        .eq('id', 1)
+        .single(),
       // newest first, so "the last price he quoted for this species" is a plain
       // first-match — the same recall trick TxForm uses for categories
       supabase

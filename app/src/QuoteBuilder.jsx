@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, todayISO } from './lib/format'
-import { quoteCost, suggestedPrice, overheadPerDay } from './lib/finance'
+import { quoteCost, componentPrice, overheadPerDay } from './lib/finance'
 import { QUOTE_STAGE } from './lib/stages'
 
 const DEFAULT_CONSUMABLES = 150
@@ -14,6 +14,11 @@ const DEFAULT_CONSUMABLES = 150
 // slow for something he fills in standing in a lumber yard. It is now two fixed
 // lines instead: מתכלים defaults to what he actually spends and rarely changes,
 // and עץ is the one number that does — species, quantity in קוב, price per קוב.
+//
+// Labour prices one of two ways. `plannedDays` always feeds overhead — the
+// workshop is occupied that many days regardless — but the labour figure
+// itself is either days × his own day rate, or an employee's hours × an
+// hourly rate, chosen by a toggle rather than mixed into one field.
 export default function QuoteBuilder({
   clients,
   settings,
@@ -39,8 +44,16 @@ export default function QuoteBuilder({
   const [woodPriceTouched, setWoodPriceTouched] = useState(false)
 
   const [plannedDays, setPlannedDays] = useState('')
+  const [labourMode, setLabourMode] = useState('days') // 'days' | 'hours'
   const [dayRate, setDayRate] = useState(String(settings.day_rate ?? ''))
+  const [hours, setHours] = useState('')
+  const [hourlyRate, setHourlyRate] = useState(String(settings.hourly_rate ?? ''))
+
   const [markup, setMarkup] = useState('25')
+  const [materialsDiscount, setMaterialsDiscount] = useState('0')
+  const [labourDiscount, setLabourDiscount] = useState('0')
+  const [overheadDiscount, setOverheadDiscount] = useState('0')
+
   const [price, setPrice] = useState('')
   const [priceTouched, setPriceTouched] = useState(false)
   const [due, setDue] = useState('')
@@ -57,10 +70,19 @@ export default function QuoteBuilder({
     plannedDays,
     dayRate,
     overheadDay,
+    hours: labourMode === 'hours' ? hours : 0,
+    hourlyRate,
   })
-  const suggestion = suggestedPrice(cost.total, markup)
-  // Until he types a price of his own, the markup drives it — after that the
-  // price is his and the markup stops overwriting it.
+
+  // Each component is marked up and then discounted on its own — the lever for
+  // shaving one line, usually labour, without touching what the rest actually
+  // costs him. The sum is the suggestion; the price field below can override it.
+  const priced = {
+    materials: componentPrice(cost.materials, markup, materialsDiscount),
+    labour: componentPrice(cost.labour, markup, labourDiscount),
+    overhead: componentPrice(cost.overhead, markup, overheadDiscount),
+  }
+  const suggestion = priced.materials + priced.labour + priced.overhead
   const finalPrice = priceTouched && price !== '' ? Number(price) : suggestion
   const belowCost = finalPrice < cost.total
 
@@ -121,7 +143,13 @@ export default function QuoteBuilder({
         planned_days: Number(plannedDays) || 0,
         day_rate: Number(dayRate) || 0,
         overhead_day: overheadDay,
+        labour_mode: labourMode,
+        hours: labourMode === 'hours' ? Number(hours) || 0 : 0,
+        hourly_rate: Number(hourlyRate) || 0,
         markup: Number(markup) || 0,
+        materials_discount: Number(materialsDiscount) || 0,
+        labour_discount: Number(labourDiscount) || 0,
+        overhead_discount: Number(overheadDiscount) || 0,
         price: finalPrice,
         sent: todayISO(),
         decision_due: decisionDue || null,
@@ -260,9 +288,11 @@ export default function QuoteBuilder({
         </div>
       </div>
 
-      <div className="row">
+      <div className="items">
+        <p className="menu-label">זמן עבודה</p>
+
         <label>
-          ימי עבודה מתוכננים
+          ימי סדנה מתוכננים
           <input
             type="number"
             inputMode="decimal"
@@ -271,16 +301,60 @@ export default function QuoteBuilder({
             onChange={(e) => setPlannedDays(e.target.value)}
           />
         </label>
-        <label>
-          תעריף ליום
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            value={dayRate}
-            onChange={(e) => setDayRate(e.target.value)}
-          />
-        </label>
+        <p className="muted small">קובע את תקורת השכירות, בכל אופן חישוב</p>
+
+        <div className="chips">
+          <button
+            type="button"
+            className={`chip${labourMode === 'days' ? ' on' : ''}`}
+            onClick={() => setLabourMode('days')}
+          >
+            לפי ימי עבודה
+          </button>
+          <button
+            type="button"
+            className={`chip${labourMode === 'hours' ? ' on' : ''}`}
+            onClick={() => setLabourMode('hours')}
+          >
+            לפי שעות עבודה
+          </button>
+        </div>
+
+        {labourMode === 'days' ? (
+          <label>
+            תעריף ליום
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              value={dayRate}
+              onChange={(e) => setDayRate(e.target.value)}
+            />
+          </label>
+        ) : (
+          <div className="row">
+            <label>
+              שעות עבודה
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+              />
+            </label>
+            <label>
+              תעריף לשעה
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       <dl className="breakdown">
@@ -304,31 +378,83 @@ export default function QuoteBuilder({
         <span className="num">{formatMoney(cost.total)}</span>
       </div>
 
-      <div className="row">
-        <label>
-          רווח (%)
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            value={markup}
-            onChange={(e) => setMarkup(e.target.value)}
-          />
-        </label>
-        <label>
-          מחיר ללקוח
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            value={priceTouched ? price : suggestion}
-            onChange={(e) => {
-              setPriceTouched(true)
-              setPrice(e.target.value)
-            }}
-          />
-        </label>
+      <label>
+        רווח (%) — על כל הרכיבים
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          value={markup}
+          onChange={(e) => setMarkup(e.target.value)}
+        />
+      </label>
+
+      <div className="items">
+        <p className="menu-label">הנחה לפי רכיב (%)</p>
+        <div className="row">
+          <label>
+            חומרים
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              value={materialsDiscount}
+              onChange={(e) => setMaterialsDiscount(e.target.value)}
+            />
+          </label>
+          <label>
+            עבודה
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              value={labourDiscount}
+              onChange={(e) => setLabourDiscount(e.target.value)}
+            />
+          </label>
+          <label>
+            תקורה
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              value={overheadDiscount}
+              onChange={(e) => setOverheadDiscount(e.target.value)}
+            />
+          </label>
+        </div>
+        <dl className="breakdown">
+          <div>
+            <dt>חומרים לאחר רווח והנחה</dt>
+            <dd className="num">{formatMoney(priced.materials)}</dd>
+          </div>
+          <div>
+            <dt>עבודה לאחר רווח והנחה</dt>
+            <dd className="num">{formatMoney(priced.labour)}</dd>
+          </div>
+          <div>
+            <dt>תקורה לאחר רווח והנחה</dt>
+            <dd className="num">{formatMoney(priced.overhead)}</dd>
+          </div>
+        </dl>
       </div>
+
+      <label>
+        מחיר ללקוח
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          value={priceTouched ? price : suggestion}
+          onChange={(e) => {
+            setPriceTouched(true)
+            setPrice(e.target.value)
+          }}
+        />
+      </label>
 
       {belowCost && (
         <p className="warn small">

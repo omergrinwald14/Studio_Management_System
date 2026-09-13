@@ -11,6 +11,7 @@ import {
   projectProfit,
   quoteCost,
   suggestedPrice,
+  componentPrice,
 } from './finance.js'
 
 // Node runs these with `npm test` — no framework, no dependency to keep current.
@@ -163,4 +164,28 @@ test('an empty quote costs nothing rather than NaN', () => {
 test('the suggested price is cost plus markup', () => {
   assert.equal(suggestedPrice(4164, 25), 5205)
   assert.equal(suggestedPrice(1000, 0), 1000)
+})
+
+test('hours override days×rate for labour, but overhead still follows days', () => {
+  const cost = quoteCost({
+    plannedDays: 4,
+    dayRate: 600,
+    overheadDay: 225,
+    hours: 10,
+    hourlyRate: 120,
+  })
+  assert.equal(cost.labour, 1200, 'hours × hourly rate, not days × day rate')
+  assert.equal(cost.overhead, 900, 'the workshop is occupied for 4 days either way')
+})
+
+test('with no hours entered, labour falls back to days × day rate', () => {
+  const cost = quoteCost({ plannedDays: 4, dayRate: 600, hours: 0, hourlyRate: 120 })
+  assert.equal(cost.labour, 2400)
+})
+
+test('a component price is marked up, then discounted on its own', () => {
+  // 1000 cost, 25% markup -> 1250, then 20% off that line -> 1000
+  assert.equal(componentPrice(1000, 25, 20), 1000)
+  assert.equal(componentPrice(1000, 25), 1250, 'no discount leaves the markup untouched')
+  assert.equal(componentPrice(1000, 0, 50), 500, 'a discount with no markup is a plain half-price')
 })

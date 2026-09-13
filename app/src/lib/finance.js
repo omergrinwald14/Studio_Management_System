@@ -129,12 +129,18 @@ export function sum(rows) {
  * those days consume. The overhead term is the one his spreadsheet never had —
  * a workshop day costs him money whether or not he bought anything that day.
  */
-export function quoteCost({ items = [], plannedDays = 0, dayRate = 0, overheadDay = 0 }) {
+/**
+ * `plannedDays` always feeds overhead — the workshop is occupied for that many
+ * days whichever way the labour itself is priced. Labour is either days × his
+ * own day rate, or (when `hours` is given) an employee's hours × an hourly
+ * rate — `hours` overrides the days×rate figure rather than adding to it.
+ */
+export function quoteCost({ items = [], plannedDays = 0, dayRate = 0, overheadDay = 0, hours = 0, hourlyRate = 0 }) {
   const materials = items.reduce(
     (total, item) => total + Number(item.qty || 0) * Number(item.unit_cost || 0),
     0,
   )
-  const labour = Number(plannedDays) * Number(dayRate)
+  const labour = Number(hours) > 0 ? Number(hours) * Number(hourlyRate) : Number(plannedDays) * Number(dayRate)
   const overhead = Number(plannedDays) * Number(overheadDay)
   return { materials, labour, overhead, total: materials + labour + overhead }
 }
@@ -142,4 +148,13 @@ export function quoteCost({ items = [], plannedDays = 0, dayRate = 0, overheadDa
 /** Cost plus a markup percentage, to the nearest shekel. */
 export function suggestedPrice(cost, markup) {
   return Math.round(Number(cost) * (1 + Number(markup || 0) / 100))
+}
+
+/**
+ * What one cost component is offered for: marked up like the rest of the
+ * quote, then discounted on its own — the lever for shaving one line (usually
+ * labour) for a client without touching what the materials actually cost him.
+ */
+export function componentPrice(cost, markup, discountPercent = 0) {
+  return Math.round(suggestedPrice(cost, markup) * (1 - Number(discountPercent || 0) / 100))
 }
