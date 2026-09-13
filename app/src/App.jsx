@@ -10,6 +10,7 @@ import Stock from './Stock'
 import Settings from './Settings'
 import More from './More'
 import UserMenu from './UserMenu'
+import UpdateNotice from './UpdateNotice'
 
 // Every screen in one table, so the tab bar, the title and the router can never
 // disagree about what exists. `tab` marks the four that earn a place on the bar;
@@ -78,6 +79,8 @@ export default function App() {
         </header>
         {current.render(go, screen.arg)}
       </main>
+
+      <UpdateNotice />
 
       <nav className="tabs">
         {Object.entries(SCREENS)
