@@ -12,6 +12,7 @@ import {
   quoteCost,
   suggestedPrice,
   componentPrice,
+  spentOnProject,
 } from './finance.js'
 
 // Node runs these with `npm test` — no framework, no dependency to keep current.
@@ -188,4 +189,29 @@ test('a component price is marked up, then discounted on its own', () => {
   assert.equal(componentPrice(1000, 25, 20), 1000)
   assert.equal(componentPrice(1000, 25), 1250, 'no discount leaves the markup untouched')
   assert.equal(componentPrice(1000, 0, 50), 500, 'a discount with no markup is a plain half-price')
+})
+
+test('a part-attributed purchase costs the project only its share', () => {
+  const rows = [
+    // one bank movement of 1,000: half this job, half stock
+    { amount: -1000, project_id: 1, project_share: 50, capital: false, adjust: false },
+    { amount: -200, project_id: 1, project_share: 100, capital: false, adjust: false },
+  ]
+  assert.equal(spentOnProject(rows, 1), -700, '500 of the board, plus the whole 200')
+})
+
+test('a share is only a project view — the balance still sees the whole movement', () => {
+  const rows = [{ date: '2026-09-01', amount: -1000, project_id: 1, project_share: 50, capital: false, adjust: false }]
+  assert.equal(balanceOf(rows, { opening: 5000, opening_date: null }), 4000, 'the bank lost all 1,000')
+  assert.equal(spentOnProject(rows, 1), -500, 'the job carries half')
+})
+
+test('an older row with no share set belongs wholly to its project', () => {
+  const rows = [{ amount: -300, project_id: 1, capital: false, adjust: false }]
+  assert.equal(spentOnProject(rows, 1), -300)
+})
+
+test('a part-attributed client payment credits the job only its share', () => {
+  const rows = [{ amount: 1000, project_id: 1, project_share: 40, capital: false, adjust: false }]
+  assert.equal(paidOnProject(rows, 1), 400)
 })

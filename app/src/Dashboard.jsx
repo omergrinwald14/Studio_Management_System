@@ -31,7 +31,7 @@ export default function Dashboard({ go }) {
         .single(),
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id')
+        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
         .order('date'),
       // a rejected quote's project is kept as history (lost = true) and owes nothing
       supabase.from('projects').select('id, name, client_id, price, due, stage').eq('lost', false),
@@ -105,7 +105,7 @@ export default function Dashboard({ go }) {
         amount: difference,
         adjust: true,
       })
-      .select('id, date, description, category, amount, capital, adjust, project_id')
+      .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
       .single()
 
     if (error) setError(error.message)

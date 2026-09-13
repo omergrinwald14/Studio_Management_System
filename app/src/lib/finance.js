@@ -46,14 +46,32 @@ export function cashFlowBreakdown(txs, settings) {
 }
 
 /**
+ * How much of one movement belongs to its project. A board bought half for this
+ * job and half for stock is one bank movement but half a project cost — so the
+ * ledger and the balance keep summing the full `amount`, and only the project's
+ * own arithmetic uses this. A row with no share set is wholly the project's.
+ */
+export function projectPortion(tx) {
+  const share = tx.project_share == null ? 100 : Number(tx.project_share)
+  return (Number(tx.amount) * share) / 100
+}
+
+/**
  * What a client has actually paid on a job: money in, on that project, from him.
  * An owner capital injection is cash but it is not a payment, and a bank
  * adjustment belongs to no project at all.
  */
 export function paidOnProject(txs, projectId) {
-  return sum(
-    txs.filter((tx) => tx.project_id === projectId && tx.amount > 0 && !tx.capital && !tx.adjust),
-  )
+  return txs
+    .filter((tx) => tx.project_id === projectId && tx.amount > 0 && !tx.capital && !tx.adjust)
+    .reduce((total, tx) => total + projectPortion(tx), 0)
+}
+
+/** What a job has cost so far — the project's share of every outgoing row on it. */
+export function spentOnProject(txs, projectId) {
+  return txs
+    .filter((tx) => tx.project_id === projectId && tx.amount < 0 && !tx.adjust)
+    .reduce((total, tx) => total + projectPortion(tx), 0)
 }
 
 /** Open projects with money still owed, soonest collection date first. */
@@ -115,7 +133,7 @@ export function overheadPerDay(settings) {
  */
 export function projectProfit(project, txs, settings) {
   if (project.price == null) return null
-  const spent = sum(txs.filter((tx) => tx.project_id === project.id && tx.amount < 0))
+  const spent = spentOnProject(txs, project.id)
   const overhead = Number(project.days) * overheadPerDay(settings)
   return Number(project.price) + spent - overhead
 }

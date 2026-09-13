@@ -3,7 +3,7 @@ import { supabase } from './lib/supabase'
 import { todayISO } from './lib/format'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, suggestFrom } from './lib/categories'
 
-const COLUMNS = 'id, date, description, category, amount, capital, adjust, project_id'
+const COLUMNS = 'id, date, description, category, amount, capital, adjust, project_id, project_share'
 
 // One form for both jobs: adding a transaction and editing an existing one.
 // They differ only in which query runs on submit, so keeping them apart would
@@ -31,6 +31,9 @@ export default function TxForm({
   const [category, setCategory] = useState(tx ? tx.category || '' : '')
   const [projectId, setProjectId] = useState(
     tx && tx.project_id ? String(tx.project_id) : String(defaultProjectId || ''),
+  )
+  const [share, setShare] = useState(
+    tx && tx.project_share != null ? String(tx.project_share) : '100',
   )
   const [amount, setAmount] = useState(tx ? String(Math.abs(tx.amount)) : '')
   const [capital, setCapital] = useState(tx ? tx.capital : false)
@@ -63,6 +66,8 @@ export default function TxForm({
       category: category.trim() || null,
       // '' means the כללי / סדנה bucket — stored as null, not as a fake project
       project_id: projectId ? Number(projectId) : null,
+      // a share only means anything against a project; the כללי bucket is whole
+      project_share: projectId ? Number(share) || 100 : 100,
       amount: direction === 'out' ? -magnitude : magnitude,
       capital: direction === 'in' ? capital : false,
     }
@@ -151,6 +156,23 @@ export default function TxForm({
           ))}
         </select>
       </label>
+
+      {projectId && (
+        // A board bought half for this job and half for stock is one bank
+        // movement. The ledger keeps the whole amount; only the project's own
+        // cost takes the share.
+        <label>
+          כמה מזה שייך לפרויקט (%)
+          <input
+            type="number"
+            inputMode="decimal"
+            min="1"
+            max="100"
+            value={share}
+            onChange={(e) => setShare(e.target.value)}
+          />
+        </label>
+      )}
 
       <div className="row">
         <label>

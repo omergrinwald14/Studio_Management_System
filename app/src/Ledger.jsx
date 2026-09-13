@@ -21,7 +21,7 @@ export default function Ledger() {
     Promise.all([
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id')
+        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
         .order('date', { ascending: false })
         .order('id', { ascending: false }), // tie-break, so same-day rows keep a stable order
       supabase.from('projects').select('id, name').order('id', { ascending: false }),
@@ -174,7 +174,16 @@ export default function Ledger() {
                       <span className="what">
                         <span className="desc">{tx.description}</span>
                         <span className="cat">
-                          {[tx.category, projectName(tx.project_id)].filter(Boolean).join(' · ')}
+                          {[
+                            tx.category,
+                            // a partly-attributed row says so, since the figure on
+                            // the right is the whole movement, not the project's part
+                            tx.project_id && Number(tx.project_share) < 100
+                              ? `${projectName(tx.project_id)} · ${tx.project_share}%`
+                              : projectName(tx.project_id),
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </span>
                         {tx.capital && <span className="tag">הון בעלים</span>}
                         {tx.adjust && <span className="tag">התאמה</span>}

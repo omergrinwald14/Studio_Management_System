@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatDate } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
-import { paidOnProject, projectProfit, overheadPerDay, sum } from './lib/finance'
+import { paidOnProject, spentOnProject, projectProfit, overheadPerDay } from './lib/finance'
 import TxForm from './TxForm'
 import Materials from './Materials'
 
@@ -23,7 +23,7 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
     Promise.all([
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id')
+        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
         .eq('project_id', initial.id)
         .order('date', { ascending: false }),
       supabase.from('settings').select('rent, days_per_month').eq('id', 1).single(),
@@ -53,7 +53,8 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
   if (loading) return <p>טוען…</p>
 
   const received = paidOnProject(txs, project.id)
-  const spent = sum(txs.filter((tx) => tx.amount < 0))
+  // the project's share of each outgoing row, not the whole bank movement
+  const spent = spentOnProject(txs, project.id)
 
   // The calculation his spreadsheet cannot produce (D10): the price, less what
   // the job actually cost, less its share of the rent — a workshop day carries
@@ -292,7 +293,17 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
                       <span className="what">
                         <span className="desc">{tx.description}</span>
                         <span className="cat">
-                          {[tx.category, formatDate(tx.date)].filter(Boolean).join(' · ')}
+                          {[
+                            tx.category,
+                            formatDate(tx.date),
+                            // the amount shown is the whole movement, so a part
+                            // share has to be visible or the total looks wrong
+                            Number(tx.project_share) < 100
+                              ? `${tx.project_share}% לפרויקט`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </span>
                       </span>
                       <span className={`num ${tx.amount < 0 ? 'neg' : 'pos'}`}>
