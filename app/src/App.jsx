@@ -6,6 +6,7 @@ import Ledger from './Ledger'
 import Projects from './Projects'
 import Clients from './Clients'
 import Quotes from './Quotes'
+import Stock from './Stock'
 import Settings from './Settings'
 import More from './More'
 import UserMenu from './UserMenu'
@@ -22,6 +23,7 @@ const SCREENS = {
   projects: { title: 'פרויקטים', tab: true, render: (go, arg) => <Projects openId={arg} /> },
   more: { title: 'עוד', tab: true, render: (go) => <More go={go} /> },
   quotes: { title: 'הצעות מחיר', parent: 'more', render: () => <Quotes /> },
+  stock: { title: 'שאריות בסדנה', parent: 'more', render: () => <Stock /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
 }

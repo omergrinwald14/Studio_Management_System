@@ -403,3 +403,10 @@ section.card { margin-bottom:16px; }
 .rows li.stacked .row { padding:10px 16px 14px; }
 
 button.wide { width:100%; }
+
+/* a mismatch between planned and actual is the point of the materials log */
+.tag.bad { color:var(--neg); border-color:currentColor; }
+.total .num { font-weight:600; }
+
+.search { margin-bottom:14px; }
+.search input { direction:rtl; text-align:right; }

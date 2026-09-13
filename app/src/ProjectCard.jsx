@@ -4,6 +4,7 @@ import { formatMoney, formatDate } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
 import { paidOnProject, projectProfit, overheadPerDay, sum } from './lib/finance'
 import TxForm from './TxForm'
+import Materials from './Materials'
 
 // One job, everything about it. The mockup settled the shape: a tabbed card, so
 // the pipeline, the money and (later) the materials, lessons, journal and photos
@@ -111,9 +112,18 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
         >
           כספים
         </button>
+        <button
+          type="button"
+          className={`chip${tab === 'materials' ? ' on' : ''}`}
+          onClick={() => setTab('materials')}
+        >
+          חומרים
+        </button>
       </div>
 
-      {tab === 'details' ? (
+      {tab === 'materials' ? (
+        <Materials projectId={project.id} />
+      ) : tab === 'details' ? (
         <>
           <section className="card">
             <div className="section-title"><h2>שלב</h2></div>

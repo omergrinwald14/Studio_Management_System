@@ -2,6 +2,7 @@
 // the bottom bar stays at four thumb-sized targets however much the system grows.
 const ITEMS = [
   { id: 'quotes', title: 'הצעות מחיר', note: 'תמחור פרויקט חדש ומעקב אחרי תשובות' },
+  { id: 'stock', title: 'שאריות בסדנה', note: 'מה כבר יש לך, לפני שאתה קונה' },
   { id: 'clients', title: 'לקוחות', note: 'פרטי קשר וכל מה שנבנה עבורם' },
   { id: 'settings', title: 'הגדרות', note: 'יתרת פתיחה, שכירות, ימי סדנה, תעריף יום' },
 ]
