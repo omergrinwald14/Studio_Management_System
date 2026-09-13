@@ -13,10 +13,10 @@ const FILTERS = [
 
 // The projects screen: every job, its client, and where it sits in the pipeline.
 // Tapping one opens its card in place.
-export default function Projects() {
+export default function Projects({ openId: initialOpenId = null }) {
   const [projects, setProjects] = useState([])
   const [clients, setClients] = useState([])
-  const [openId, setOpenId] = useState(null)
+  const [openId, setOpenId] = useState(initialOpenId)
   const [filter, setFilter] = useState('live')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')

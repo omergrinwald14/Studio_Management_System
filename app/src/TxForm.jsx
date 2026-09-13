@@ -15,6 +15,7 @@ export default function TxForm({
   recall = {},
   projects = [],
   defaultProjectId = '', // set when the form is opened from inside a project
+  defaultDirection = 'out', // follows the ledger's active filter
   onSaved,
   onDeleted,
   onCancel,
@@ -24,7 +25,7 @@ export default function TxForm({
 
   // Direction is a UI choice, not a column: it becomes the sign of `amount`,
   // so the ledger stays one flat list and a total is a sum, not two cases.
-  const [direction, setDirection] = useState(tx && tx.amount > 0 ? 'in' : 'out')
+  const [direction, setDirection] = useState(tx ? (tx.amount > 0 ? 'in' : 'out') : defaultDirection)
   const [date, setDate] = useState(tx ? tx.date : todayISO())
   const [description, setDescription] = useState(tx ? tx.description : '')
   const [category, setCategory] = useState(tx ? tx.category || '' : '')

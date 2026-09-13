@@ -1,25 +1,26 @@
-// Seed categories, taken from the spreadsheet he keeps today (שכירות, חומר גלם,
-// מתכלים) and the expense types his spec lists. They are suggestions, not a
-// closed set: the field accepts anything typed, and whatever he uses joins the
-// list on its own, since the options are seeds plus what the ledger already holds.
+// The category lists from the approved mockup, which in turn came from the
+// spreadsheet he keeps today (שכירות, חומר גלם, מתכלים) and his spec. They are
+// suggestions, not a closed set: the field accepts anything typed, and whatever
+// he uses joins the list on its own, since the options are seeds plus what the
+// ledger already holds.
 export const EXPENSE_CATEGORIES = [
   'חומר גלם',
   'מתכלים',
   'פרזול',
-  'גימור',
+  'גימורים',
+  'הובלה',
   'שכירות',
-  'הובלות',
-  'כלים וציוד',
-  'ביטוח',
-  'שיווק',
-  'אחזקה',
+  'ציוד',
+  'אחר',
 ]
 
 export const INCOME_CATEGORIES = [
-  'תשלום מלקוח',
   'מקדמה',
-  'יתרת תשלום',
+  'תשלום ביניים',
+  'תשלום סופי',
+  'תשלום לקוח',
   'הון עצמי',
+  'אחר',
 ]
 
 // Merge the seeds with everything already used, drop blanks and duplicates.

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { THEMES, readTheme, applyTheme } from './lib/theme'
 
 // The standard account control: an avatar in the header corner that opens a
 // small menu. It keeps the identity and the sign-out button available without
 // letting either compete with the screen's actual content.
 export default function UserMenu({ email }) {
   const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState(readTheme)
   const wrapper = useRef(null) // a handle on the real DOM node, to test clicks against
 
   useEffect(() => {
@@ -51,6 +53,26 @@ export default function UserMenu({ email }) {
       {open && (
         <div className="menu" role="menu">
           <p className="menu-email">{email}</p>
+
+          <div className="menu-theme">
+            <p className="menu-label">תצוגה</p>
+            <div className="chips">
+              {THEMES.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`chip${theme === option.id ? ' on' : ''}`}
+                  onClick={() => {
+                    applyTheme(option.id)
+                    setTheme(option.id)
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button type="button" role="menuitem" onClick={() => supabase.auth.signOut()}>
             יציאה
           </button>

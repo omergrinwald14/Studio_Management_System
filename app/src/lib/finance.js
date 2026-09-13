@@ -82,6 +82,7 @@ export function expectedMovements({ receivables, rent, today, until, labelFor })
       label: project.name,
       note: labelFor ? labelFor(project) : '',
       amount: project.due_amount,
+      projectId: project.id, // a job line can be opened; a rent line has nothing to open
     }))
 
   const fromRent =
@@ -92,6 +93,7 @@ export function expectedMovements({ receivables, rent, today, until, labelFor })
           label: 'שכירות סדנה',
           note: 'הוצאה קבועה',
           amount: -Number(rent),
+          projectId: null,
         }))
       : []
 

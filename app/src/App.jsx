@@ -12,10 +12,13 @@ import UserMenu from './UserMenu'
 // Every screen in one table, so the tab bar, the title and the router can never
 // disagree about what exists. `tab` marks the four that earn a place on the bar;
 // the rest live under "עוד" — a phone tab bar stops being thumb-friendly at five.
+//
+// `arg` is how one screen hands the next a subject: tapping a project on the
+// dashboard opens that project's card rather than the bare list.
 const SCREENS = {
-  home: { title: 'בית', tab: true, render: () => <Dashboard /> },
+  home: { title: 'בית', tab: true, render: (go) => <Dashboard go={go} /> },
   ledger: { title: 'תנועות', tab: true, render: () => <Ledger /> },
-  projects: { title: 'פרויקטים', tab: true, render: () => <Projects /> },
+  projects: { title: 'פרויקטים', tab: true, render: (go, arg) => <Projects openId={arg} /> },
   more: { title: 'עוד', tab: true, render: (go) => <More go={go} /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
@@ -24,7 +27,12 @@ const SCREENS = {
 export default function App() {
   const [session, setSession] = useState(null)
   const [checking, setChecking] = useState(true)
-  const [screenId, setScreenId] = useState('home')
+  const [screen, setScreen] = useState({ id: 'home', arg: null })
+
+  // One function handed to any screen that needs to send the user elsewhere.
+  function go(id, arg = null) {
+    setScreen({ id, arg })
+  }
 
   useEffect(() => {
     // Supabase keeps the session in localStorage, so a refresh should not log
@@ -45,26 +53,26 @@ export default function App() {
   if (checking) return <main className="login"><p>טוען…</p></main>
   if (!session) return <Login />
 
-  const screen = SCREENS[screenId]
+  const current = SCREENS[screen.id]
   // A screen reached from the hub highlights the hub's tab, so the bar always
   // says where you are rather than going blank.
-  const activeTab = screen.parent || screenId
+  const activeTab = current.parent || screen.id
 
   return (
     <>
       <main className="app">
         <header className="top">
           <div>
-            {screen.parent && (
-              <button type="button" className="back" onClick={() => setScreenId(screen.parent)}>
-                → {SCREENS[screen.parent].title}
+            {current.parent && (
+              <button type="button" className="back" onClick={() => go(current.parent)}>
+                → {SCREENS[current.parent].title}
               </button>
             )}
-            <h1>{screen.title}</h1>
+            <h1>{current.title}</h1>
           </div>
           <UserMenu email={session.user.email} />
         </header>
-        {screen.render(setScreenId)}
+        {current.render(go, screen.arg)}
       </main>
 
       <nav className="tabs">
@@ -75,7 +83,7 @@ export default function App() {
               key={id}
               type="button"
               className={id === activeTab ? 'on' : ''}
-              onClick={() => setScreenId(id)}
+              onClick={() => go(id)}
             >
               {s.title}
             </button>

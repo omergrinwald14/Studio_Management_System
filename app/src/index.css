@@ -8,6 +8,9 @@
   --accent:#2a78d6; --neg:#e34948; --good:#0a7a3d;
   --shadow:0 1px 2px rgba(11,11,11,.05), 0 8px 24px -12px rgba(11,11,11,.12);
 }
+/* Dark is defined twice on purpose. The media query covers "follow the device",
+   which is the default; the [data-theme] block covers his explicit choice, and
+   without it a chosen dark would lose to a device set to light. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
@@ -17,6 +20,14 @@
     --accent:#3987e5; --neg:#e66767; --good:#35c47a;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-muted:#898781;
+  --ring:rgba(255,255,255,0.10);
+  --accent:#3987e5; --neg:#e66767; --good:#35c47a;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 
 * { box-sizing: border-box; }
@@ -340,3 +351,43 @@ section.card { margin-bottom:16px; }
   background:var(--ring); overflow:hidden; }
 .meter i { display:block; height:100%; background:var(--accent); border-radius:3px; }
 .meter i.over { background:var(--neg); }
+
+/* ---------- theme switch inside the account menu ---------- */
+.menu-theme { padding:10px 10px 4px; border-bottom:1px solid var(--ring); }
+.menu-label { margin:0 0 8px; font-size:11.5px; font-weight:650;
+  letter-spacing:.05em; color:var(--ink-muted); }
+.menu-theme .chips { margin:0 0 8px; gap:6px; flex-wrap:wrap; }
+.menu-theme .chip { padding:5px 10px; font-size:12px; }
+
+.row-btn.column { flex-direction:column; align-items:stretch; gap:8px; }
+.row-btn.column .pipeline { margin:0; }
+
+/* ---------- one spacing rule for every section ----------
+   Each screen is a stack of sections; letting each one invent its own gap is
+   how a title ends up crowding the card above it. */
+.app section { margin-bottom:26px; }
+.app section:last-child { margin-bottom:0; }
+.app section.card { margin-bottom:20px; }
+.hero, .forecast, .breakdown-card { margin-bottom:20px; }
+.month { margin-bottom:26px; }
+
+.more-btn {
+  display:flex; margin:6px auto 0; padding:4px;
+  background:none; color:var(--ink-muted); border:0; border-radius:999px;
+}
+.more-btn:hover { color:var(--ink-2); }
+.more-btn svg { transition:transform .15s ease; }
+.more-btn.open svg { transform:rotate(180deg); }
+
+/* a tappable row owns its own padding, so the list item gives up its own */
+.rows li:has(> .row-btn) { padding:0; }
+.fc-list li.tappable { padding:0; }
+.fc-list li.tappable .row-btn { padding:0; gap:12px; }
+.fc-list li.tappable .row-btn:hover { background:none; text-decoration:underline; }
+
+
+.all-btn {
+  display:block; margin:10px 0 0; padding:0;
+  background:none; color:var(--accent); font-size:13.5px; font-weight:550;
+}
+

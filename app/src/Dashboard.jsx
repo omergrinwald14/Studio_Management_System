@@ -4,11 +4,12 @@ import { formatMoney, formatDate, todayISO, endOfMonth } from './lib/format'
 import { balanceOf, receivablesOf, expectedMovements } from './lib/finance'
 import { STAGES, DONE } from './lib/stages'
 import WorkshopDays from './WorkshopDays'
+import ShortList from './ShortList'
 
 // The screen he opens standing in the lumber yard: what is in the account, what
-// is left if he spends this, what is still owed to him and what the balance
-// looks like on a date he picks. Forward-looking, not a report of the past (D9).
-export default function Dashboard() {
+// is left if he spends this, and what the balance looks like on a date he picks.
+// Forward-looking, not a report of the past (D9).
+export default function Dashboard({ go }) {
   const [settings, setSettings] = useState(null)
   const [txs, setTxs] = useState([])
   const [projects, setProjects] = useState([])
@@ -28,7 +29,10 @@ export default function Dashboard() {
         .select('opening, opening_date, rent, days_per_month')
         .eq('id', 1)
         .single(),
-      supabase.from('txs').select('id, date, amount, capital, adjust, project_id').order('date'),
+      supabase
+        .from('txs')
+        .select('id, date, description, category, amount, capital, adjust, project_id')
+        .order('date'),
       // a rejected quote's project is kept as history (lost = true) and owes nothing
       supabase.from('projects').select('id, name, client_id, price, due, stage').eq('lost', false),
       supabase.from('clients').select('id, name'),
@@ -68,11 +72,11 @@ export default function Dashboard() {
     return client ? client.name : ''
   }
 
-  const receivables = receivablesOf(projects, txs)
-  const receivableTotal = receivables.reduce((total, project) => total + project.due_amount, 0)
-
+  // Receivables no longer have a block of their own here — the money owed is
+  // visible on each project's card. They still feed the forecast, which is the
+  // question the dashboard exists to answer.
   const expected = expectedMovements({
-    receivables,
+    receivables: receivablesOf(projects, txs),
     rent: settings.rent,
     today,
     until,
@@ -81,6 +85,7 @@ export default function Dashboard() {
   const forecast = expected.reduce((total, item) => total + item.amount, balance)
 
   const active = projects.filter((project) => project.stage < DONE).sort((a, b) => b.stage - a.stage)
+  const recent = [...txs].sort((a, b) => (a.date === b.date ? b.id - a.id : b.date.localeCompare(a.date)))
 
   async function handleReconcile(event) {
     event.preventDefault()
@@ -99,7 +104,7 @@ export default function Dashboard() {
         amount: difference,
         adjust: true,
       })
-      .select('id, date, amount, capital, adjust, project_id')
+      .select('id, date, description, category, amount, capital, adjust, project_id')
       .single()
 
     if (error) setError(error.message)
@@ -118,7 +123,7 @@ export default function Dashboard() {
         <p className="value num">{formatMoney(balance)}</p>
         <div className="asof-row">
           <span className="asof">
-            {asOf ? `נכון ל־${formatDate(asOf)}` : 'לא הוגדרה יתרת פתיחה'}
+            {asOf ? `נכון ל-${formatDate(asOf)}` : 'לא הוגדרה יתרת פתיחה'}
           </span>
           <button type="button" className="link" onClick={() => setShowBank(!showBank)}>
             התאמה לבנק
@@ -164,66 +169,6 @@ export default function Dashboard() {
         </form>
       </section>
 
-      <WorkshopDays daysPerMonth={settings.days_per_month} />
-
-      <section className="card forecast">
-        <div className="fc-head">
-          <span className="label">כמה כסף יהיה לי עד תאריך</span>
-          <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-        </div>
-        <p className="value num">{formatMoney(forecast)}</p>
-        <p className="muted small">יתרה צפויה ב־{formatDate(until)} · הערכה בלבד</p>
-
-        <ul className="fc-list">
-          {expected.length === 0 ? (
-            <li className="muted">אין תנועות צפויות עד התאריך הזה</li>
-          ) : (
-            expected.map((item) => (
-              <li key={item.key}>
-                <span className="what">
-                  <span className="desc">{item.label}</span>
-                  <span className="cat">
-                    {[item.note, formatDate(item.date)].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                <span className={`num ${item.amount < 0 ? 'neg' : 'pos'}`}>
-                  {formatMoney(item.amount)}
-                </span>
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
-
-      <section>
-        <div className="section-title">
-          <h2>יתרות לגבייה</h2>
-          <span className="num">{formatMoney(receivableTotal)}</span>
-        </div>
-        {receivables.length === 0 ? (
-          <p className="muted">אין יתרות פתוחות</p>
-        ) : (
-          <ul className="rows">
-            {receivables.map((project) => (
-              <li key={project.id}>
-                <span className="what">
-                  <span className="desc">{project.name}</span>
-                  <span className="cat">
-                    {[
-                      clientName(project.client_id),
-                      project.due ? `לגבייה עד ${formatDate(project.due)}` : 'ללא תאריך יעד',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                </span>
-                <span className="num">{formatMoney(project.due_amount)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <section>
         <div className="section-title">
           <h2>פרויקטים פעילים</h2>
@@ -231,21 +176,106 @@ export default function Dashboard() {
         {active.length === 0 ? (
           <p className="muted">אין פרויקטים פעילים</p>
         ) : (
-          <ul className="rows">
-            {active.map((project) => (
-              <li key={project.id} className="stacked">
-                <span className="what">
-                  <span className="desc">{project.name}</span>
-                  <span className="cat">{STAGES[project.stage]}</span>
-                </span>
-                <span className="pipeline" aria-hidden="true">
-                  {STAGES.map((label, index) => (
-                    <span key={label} className={index <= project.stage ? 'seg on' : 'seg'} />
-                  ))}
-                </span>
+          <ShortList items={active} rows={3} onAll={() => go('projects')} allLabel="לכל הפרויקטים">
+            {(project) => (
+              <li key={project.id}>
+                {/* the dashboard names a project, so it should also be the way
+                    in — `go` carries the id across to the projects screen */}
+                <button
+                  type="button"
+                  className="row-btn column"
+                  onClick={() => go('projects', project.id)}
+                >
+                  <span className="what">
+                    <span className="desc">{project.name}</span>
+                    <span className="cat">{STAGES[project.stage]}</span>
+                  </span>
+                  <span className="pipeline" aria-hidden="true">
+                    {STAGES.map((label, index) => (
+                      <span key={label} className={index <= project.stage ? 'seg on' : 'seg'} />
+                    ))}
+                  </span>
+                </button>
               </li>
-            ))}
-          </ul>
+            )}
+          </ShortList>
+        )}
+      </section>
+
+      <WorkshopDays daysPerMonth={settings.days_per_month} />
+
+      <section className="card forecast">
+        <div className="fc-head">
+          <span className="label">כמה כסף יהיה בתאריך</span>
+          <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+        </div>
+        <p className="value num">{formatMoney(forecast)}</p>
+        <p className="muted small">יתרה צפויה ב-{formatDate(until)} · הערכה בלבד</p>
+
+        <ul className="fc-list">
+          {expected.length === 0 ? (
+            <li className="muted">אין תנועות צפויות עד התאריך הזה</li>
+          ) : (
+            expected.map((item) => {
+              const body = (
+                <>
+                  <span className="what">
+                    <span className="desc">{item.label}</span>
+                    <span className="cat">
+                      {[item.note, formatDate(item.date)].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <span className={`num ${item.amount < 0 ? 'neg' : 'pos'}`}>
+                    {formatMoney(item.amount)}
+                  </span>
+                </>
+              )
+              // The rent line names no job, so there is nothing to open — it
+              // stays plain text rather than pretending to be a control.
+              return (
+                <li key={item.key} className={item.projectId ? 'tappable' : undefined}>
+                  {item.projectId ? (
+                    <button
+                      type="button"
+                      className="row-btn"
+                      onClick={() => go('projects', item.projectId)}
+                    >
+                      {body}
+                    </button>
+                  ) : (
+                    body
+                  )}
+                </li>
+              )
+            })
+          )}
+        </ul>
+      </section>
+
+      <section>
+        <div className="section-title">
+          <h2>תנועות אחרונות</h2>
+        </div>
+        {recent.length === 0 ? (
+          <p className="muted">אין תנועות עדיין</p>
+        ) : (
+          <ShortList items={recent} rows={4} onAll={() => go('ledger')} allLabel="לכל התנועות">
+            {(tx) => (
+              <li key={tx.id}>
+                <button type="button" className="row-btn" onClick={() => go('ledger')}>
+                  <span className="what">
+                    <span className="desc">{tx.description}</span>
+                    <span className="cat">
+                      {[tx.category, formatDate(tx.date)].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <span className={`num ${tx.amount < 0 ? 'neg' : 'pos'}`}>
+                    {formatMoney(tx.amount)}
+                  </span>
+                </button>
+              </li>
+            )}
+          </ShortList>
         )}
       </section>
     </>

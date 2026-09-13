@@ -131,10 +131,17 @@ export default function Ledger() {
       </div>
 
       {editingId === 'new' ? (
-        <TxForm {...formProps} onSaved={handleSaved} onCancel={() => setEditingId(null)} />
+        <TxForm
+          {...formProps}
+          defaultDirection={filter === 'in' ? 'in' : 'out'}
+          onSaved={handleSaved}
+          onCancel={() => setEditingId(null)}
+        />
       ) : (
+        // The filter says what he is looking at, so it is a fair guess at what
+        // he is about to add — the button names it instead of staying generic.
         <button type="button" className="add-toggle" onClick={() => setEditingId('new')}>
-          + תנועה חדשה
+          {filter === 'in' ? '+ הכנסה חדשה' : filter === 'out' ? '+ הוצאה חדשה' : '+ תנועה חדשה'}
         </button>
       )}
 
