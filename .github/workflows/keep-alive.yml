@@ -24,8 +24,12 @@ jobs:
           # RLS refuses this reader, so the row never comes back — which is the
           # point: the request reaches the database and proves the project is in
           # use, without the workflow ever holding a key that can read the books.
+          # Both headers, not just apikey: a publishable key (sb_publishable_…)
+          # is rejected with 401 unless it is also presented as the bearer token.
+          # supabase-js sends both, which is why the browser never sees this.
           status=$(curl -s -o /dev/null -w '%{http_code}' \
             -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             "$SUPABASE_URL/rest/v1/settings?select=id&limit=1")
           echo "HTTP $status"
           # 200 means the database answered. Anything else — 000 for no answer at
