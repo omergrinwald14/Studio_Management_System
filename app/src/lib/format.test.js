@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { formatMonth, formatDay, formatDate, monthStartsBetween } from './format.js'
+import { formatMonth, formatDay, formatDate, monthStartsBetween, monthlyDatesBetween } from './format.js'
 
 test('a bare date keeps its own day', () => {
   // new Date('2026-01-01') is parsed as UTC and lands on 31/12 in our timezone.
@@ -33,4 +33,12 @@ test('a window shorter than a month has no rent in it', () => {
 
 test('the 1st of the starting month is behind us, not ahead', () => {
   assert.deepEqual(monthStartsBetween('2026-09-01', '2026-09-30'), [])
+})
+
+test('a day other than the 1st is honoured each month', () => {
+  assert.deepEqual(monthlyDatesBetween('2026-09-12', '2026-11-20', 15), [
+    '2026-09-15',
+    '2026-10-15',
+    '2026-11-15',
+  ])
 })

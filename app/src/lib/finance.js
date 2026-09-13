@@ -5,7 +5,7 @@
 // two copies of a formula drift apart. And a function that takes rows and
 // returns a number can be tested; the same arithmetic inside a component cannot.
 
-import { monthStartsBetween } from './format.js' // Node needs the extension; Vite accepts it too
+import { monthlyDatesBetween } from './format.js' // Node needs the extension; Vite accepts it too
 
 /** Rows that the opening balance does not already contain. */
 export function countableTxs(txs, openingDate) {
@@ -70,10 +70,11 @@ export function receivablesOf(projects, txs) {
 
 /**
  * Movements expected between today and `until`: money owed on jobs, at the date
- * it is due, and the rent on the 1st of each month. Commitments only — a
- * pending quote is not money and is deliberately left out.
+ * it is due, and the rent on its due day each month (`rentDay`, editable in
+ * settings — his landlord charges on the 15th, not the 1st). Commitments only —
+ * a pending quote is not money and is deliberately left out.
  */
-export function expectedMovements({ receivables, rent, today, until, labelFor }) {
+export function expectedMovements({ receivables, rent, rentDay = 1, today, until, labelFor }) {
   const fromJobs = receivables
     .filter((project) => project.due && project.due > today && project.due <= until)
     .map((project) => ({
@@ -87,7 +88,7 @@ export function expectedMovements({ receivables, rent, today, until, labelFor })
 
   const fromRent =
     Number(rent) > 0
-      ? monthStartsBetween(today, until).map((date) => ({
+      ? monthlyDatesBetween(today, until, rentDay).map((date) => ({
           key: `rent${date}`,
           date,
           label: 'שכירות סדנה',

@@ -37,20 +37,26 @@ export function formatDate(iso) {
   return `${day}/${month}/${year}`
 }
 
-// The 1st of every month strictly after `from` and up to `until`, as ISO dates.
-// Used to place a recurring cost like rent on the forecast timeline.
-export function monthStartsBetween(from, until) {
+// The given day-of-month, in every month from `from` up to `until`, as ISO
+// dates — strictly after `from` so a date already past never re-appears in a
+// forecast that starts today. Used to place a recurring cost like rent on the
+// timeline; `day` defaults to the 1st for anything that has no date of its own.
+export function monthlyDatesBetween(from, until, day = 1) {
   const dates = []
   const [year, month] = from.split('-').map(Number)
-  let cursor = new Date(year, month - 1, 1)
-  cursor.setMonth(cursor.getMonth() + 1)
+  let cursor = new Date(year, month - 1, day) // day `day` of `from`'s own month
   while (true) {
-    const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-01`
+    const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     if (iso > until) break
     if (iso > from) dates.push(iso)
     cursor.setMonth(cursor.getMonth() + 1)
   }
   return dates
+}
+
+// Back-compat name for the common case (day 1).
+export function monthStartsBetween(from, until) {
+  return monthlyDatesBetween(from, until, 1)
 }
 
 // Last day of the current month, the default horizon for the forecast.

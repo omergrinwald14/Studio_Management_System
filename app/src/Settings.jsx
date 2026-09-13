@@ -15,7 +15,7 @@ export default function Settings() {
     // One row, pinned to id 1 by a check constraint — there is one studio.
     supabase
       .from('settings')
-      .select('opening, opening_date, rent, days_per_month, day_rate')
+      .select('opening, opening_date, rent, rent_day, days_per_month, day_rate')
       .eq('id', 1)
       .single()
       .then(({ data, error }) => {
@@ -40,6 +40,7 @@ export default function Settings() {
         opening: Number(values.opening) || 0,
         opening_date: values.opening_date || null,
         rent: Number(values.rent) || 0,
+        rent_day: Number(values.rent_day) || 1,
         days_per_month: Number(values.days_per_month) || 0,
         day_rate: Number(values.day_rate) || 0,
         updated_at: new Date().toISOString(),
@@ -91,15 +92,27 @@ export default function Settings() {
           />
         </label>
         <label>
-          ימי סדנה בחודש
+          יום חיוב בחודש
           <input
             type="number"
-            inputMode="decimal"
-            value={values.days_per_month ?? ''}
-            onChange={(e) => set('days_per_month', e.target.value)}
+            inputMode="numeric"
+            min="1"
+            max="28"
+            value={values.rent_day ?? ''}
+            onChange={(e) => set('rent_day', e.target.value)}
           />
         </label>
       </div>
+
+      <label>
+        ימי סדנה בחודש
+        <input
+          type="number"
+          inputMode="decimal"
+          value={values.days_per_month ?? ''}
+          onChange={(e) => set('days_per_month', e.target.value)}
+        />
+      </label>
 
       <label>
         תעריף יום עבודה

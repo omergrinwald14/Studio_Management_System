@@ -12,8 +12,10 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
   const [clientId, setClientId] = useState(clients.length ? String(clients[0].id) : 'new')
   const [newClient, setNewClient] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newAddress, setNewAddress] = useState('')
   const [stage, setStage] = useState(0)
   const [price, setPrice] = useState('')
+  const [deposit, setDeposit] = useState('')
   const [due, setDue] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -27,8 +29,12 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
     if (clientId === 'new') {
       const { data, error } = await supabase
         .from('clients')
-        .insert({ name: newClient.trim(), phone: newPhone.trim() || null })
-        .select('id, name, phone')
+        .insert({
+          name: newClient.trim(),
+          phone: newPhone.trim() || null,
+          address: newAddress.trim() || null,
+        })
+        .select('id, name, phone, address')
         .single()
       if (error) {
         setError(error.message)
@@ -54,8 +60,34 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
       .select('id, name, client_id, stage, price, opened, due, days, planned_days, lost')
       .single()
 
-    if (error) setError(error.message)
-    else onSaved(data)
+    if (error) {
+      setError(error.message)
+      setBusy(false)
+      return
+    }
+
+    // An advance paid up front is real money in, so it belongs in the ledger
+    // from the start — not a fact he has to remember to add as a second step.
+    if (Number(deposit) > 0) {
+      const { error: depositError } = await supabase.from('txs').insert({
+        date: todayISO(),
+        description: `מקדמה — ${name.trim()}`,
+        category: 'מקדמה',
+        project_id: data.id,
+        amount: Number(deposit),
+        capital: false,
+      })
+      if (depositError) {
+        // the project is already saved; a failed deposit row is a partial
+        // problem, not a reason to lose the project he just created
+        setError(`הפרויקט נשמר, אך המקדמה לא נרשמה: ${depositError.message}`)
+        setBusy(false)
+        onSaved(data)
+        return
+      }
+    }
+
+    onSaved(data)
     setBusy(false)
   }
 
@@ -81,16 +113,22 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
       </label>
 
       {clientId === 'new' && (
-        <div className="row">
+        <>
+          <div className="row">
+            <label>
+              שם הלקוח
+              <input value={newClient} onChange={(e) => setNewClient(e.target.value)} required />
+            </label>
+            <label>
+              טלפון
+              <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+            </label>
+          </div>
           <label>
-            שם הלקוח
-            <input value={newClient} onChange={(e) => setNewClient(e.target.value)} required />
+            כתובת להובלה / התקנה
+            <input value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
           </label>
-          <label>
-            טלפון
-            <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-          </label>
-        </div>
+        </>
       )}
 
       <label>
@@ -106,7 +144,7 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
 
       <div className="row">
         <label>
-          מחיר סגור
+          מחיר
           <input
             type="number"
             inputMode="decimal"
@@ -120,6 +158,18 @@ export default function ProjectForm({ clients, onSaved, onClientAdded, onCancel 
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         </label>
       </div>
+
+      <label>
+        מקדמה שהתקבלה
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          value={deposit}
+          onChange={(e) => setDeposit(e.target.value)}
+          placeholder="אם כבר שולמה"
+        />
+      </label>
 
       {error && <p className="error">{error}</p>}
 

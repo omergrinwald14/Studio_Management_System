@@ -111,6 +111,20 @@ test('no rent set means no rent line', () => {
   assert.deepEqual(moves, [])
 })
 
+test('rent falls on the day he configures, not always the 1st', () => {
+  const moves = expectedMovements({
+    receivables: [],
+    rent: 1800,
+    rentDay: 15,
+    today: '2026-09-12',
+    until: '2026-10-31',
+  })
+  assert.deepEqual(
+    moves.map((m) => m.date),
+    ['2026-09-15', '2026-10-15'],
+  )
+})
+
 test('a workshop day carries its share of the rent', () => {
   assert.equal(overheadPerDay(settings), 225)
   assert.equal(overheadPerDay({ rent: 1800, days_per_month: 0 }), 0, 'never divide by zero')

@@ -26,7 +26,7 @@ export default function Dashboard({ go }) {
     Promise.all([
       supabase
         .from('settings')
-        .select('opening, opening_date, rent, days_per_month')
+        .select('opening, opening_date, rent, rent_day, days_per_month')
         .eq('id', 1)
         .single(),
       supabase
@@ -78,6 +78,7 @@ export default function Dashboard({ go }) {
   const expected = expectedMovements({
     receivables: receivablesOf(projects, txs),
     rent: settings.rent,
+    rentDay: settings.rent_day,
     today,
     until,
     labelFor: (project) => clientName(project.client_id),
