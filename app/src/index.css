@@ -97,7 +97,14 @@ button:disabled { opacity:.6; cursor:default; }
    avatar's own left edge, which is what keeps it on screen in RTL. */
 .menu {
   position:fixed; z-index:30;
-  width:190px; max-width:calc(100vw - 24px);
+  /* A 24-character email needs 192px here, measured; at 190px it came up two
+     pixels short and dropped its last character to a second line. The floor is
+     that measurement plus a little slack, so a slightly longer address still
+     fits, and the ceiling keeps the menu on the screen — past which
+     overflow-wrap below breaks the address rather than letting it escape.
+     max-content alone would not do it: overflow-wrap:anywhere feeds back into
+     the intrinsic width calculation, so the floor is what does the work. */
+  width:max-content; min-width:204px; max-width:calc(100vw - 24px);
   padding:5px;
   background:var(--surface); border:1px solid var(--ring);
   border-radius:12px; box-shadow:var(--shadow);

@@ -29,7 +29,7 @@ export default function Dashboard({ go }) {
     Promise.all([
       supabase
         .from('settings')
-        .select('opening, opening_date, rent, rent_day, days_per_month, last_backup')
+        .select('opening, opening_date, rent, rent_day, days_per_month')
         .eq('id', 1)
         .single(),
       supabase
@@ -100,12 +100,6 @@ export default function Dashboard({ go }) {
     labelFor: (project) => clientName(project.client_id),
   })
   const forecast = expected.reduce((total, item) => total + item.amount, balance)
-
-  // A fortnight is the most work he should ever be able to lose.
-  const daysSinceBackup = settings.last_backup
-    ? Math.round((Date.parse(today) - Date.parse(settings.last_backup)) / 86400000)
-    : null
-  const backupOverdue = daysSinceBackup === null || daysSinceBackup >= 14
 
   const active = projects.filter((project) => project.stage < DONE).sort((a, b) => b.stage - a.stage)
   const recent = [...txs].sort((a, b) => (a.date === b.date ? b.id - a.id : b.date.localeCompare(a.date)))
@@ -191,22 +185,6 @@ export default function Dashboard({ go }) {
           )}
         </form>
       </section>
-
-      {backupOverdue && (
-        // There is no automatic backup anywhere in this system (D4), so the
-        // only thing standing between him and a total loss is remembering —
-        // which is not a plan. The dashboard remembers for him.
-        <section className="card notice">
-          <p className="note">
-            {settings.last_backup
-              ? `הגיבוי האחרון היה לפני ${daysSinceBackup} ימים.`
-              : 'עוד לא גיבית את הנתונים אף פעם.'}
-          </p>
-          <button type="button" onClick={() => go('backup')}>
-            גיבוי עכשיו
-          </button>
-        </section>
-      )}
 
       <section>
         <div className="section-title">
