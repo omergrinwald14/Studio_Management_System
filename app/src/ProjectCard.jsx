@@ -3,9 +3,11 @@ import { supabase } from './lib/supabase'
 import { formatMoney, formatDate } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
 import { paidOnProject, spentOnProject, projectProfit, overheadPerDay } from './lib/finance'
+import { remove } from './lib/storage'
 import TxForm from './TxForm'
 import Materials from './Materials'
 import Lessons from './Lessons'
+import Gallery from './Gallery'
 
 // One job, everything about it. The mockup settled the shape: a tabbed card, so
 // the pipeline, the money and (later) the materials, lessons, journal and photos
@@ -73,15 +75,26 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
   async function handleDelete() {
     const consequences = [`הפרויקט "${project.name}" יימחק לצמיתות.`]
     if (txs.length) consequences.push(`${txs.length} תנועות יישארו בספר ויעברו לכללי / סדנה.`)
-    consequences.push('הצעת המחיר שלו, אם קיימת, תימחק איתו.')
+    consequences.push('הצעת המחיר שלו, התמונות והלקחים שלו יימחקו איתו.')
     if (!window.confirm(consequences.join('\n'))) return
 
     setBusy(true)
+    // The media rows cascade with the project, but the files they point at do
+    // not — storage knows nothing about foreign keys. Collect the paths while
+    // the rows still exist, or they become unreachable bytes on the 1 GB plan.
+    const { data: photos } = await supabase
+      .from('media')
+      .select('path')
+      .eq('project_id', project.id)
+
     const { error } = await supabase.from('projects').delete().eq('id', project.id)
     if (error) {
       setError(error.message)
       setBusy(false)
-    } else onDeleted(project.id)
+    } else {
+      if (photos?.length) await remove('media', photos.map((photo) => photo.path))
+      onDeleted(project.id)
+    }
   }
 
   function handleSaved(saved) {
@@ -128,12 +141,21 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
         >
           לקחים
         </button>
+        <button
+          type="button"
+          className={`chip${tab === 'gallery' ? ' on' : ''}`}
+          onClick={() => setTab('gallery')}
+        >
+          גלריה
+        </button>
       </div>
 
       {tab === 'materials' ? (
         <Materials projectId={project.id} />
       ) : tab === 'lessons' ? (
         <Lessons projectId={project.id} />
+      ) : tab === 'gallery' ? (
+        <Gallery projectId={project.id} />
       ) : tab === 'details' ? (
         <>
           <section className="card">

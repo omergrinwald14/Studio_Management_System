@@ -504,3 +504,16 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .lesson-text { display:block; font-size:14.5px; white-space:pre-wrap; }
 .lesson-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .lesson-tags .tag { margin:0; }
+
+/* ---------- project gallery ---------- */
+.gallery { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px; }
+.shot { margin:0; position:relative; border-radius:12px; overflow:hidden;
+  background:var(--surface); border:1px solid var(--ring); }
+.shot img { display:block; width:100%; aspect-ratio:1; object-fit:cover; }
+.shot-missing { width:100%; aspect-ratio:1; background:var(--ring); }
+.shot figcaption { position:absolute; inset-inline:0; bottom:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:4px 6px; background:linear-gradient(transparent, rgba(0,0,0,.55)); }
+.shot figcaption button { background:none; border:0; padding:2px 6px;
+  font-size:16px; line-height:1; color:#fff; }
+.star.on { color:#ffc93c; }
