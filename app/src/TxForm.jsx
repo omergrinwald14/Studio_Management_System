@@ -2,8 +2,10 @@ import { useId, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { todayISO } from './lib/format'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, suggestFrom } from './lib/categories'
+import { uploadReceipt, deleteReceipt, receiptUrl } from './lib/receipts'
 
-const COLUMNS = 'id, date, description, category, amount, capital, adjust, project_id, project_share'
+const COLUMNS =
+  'id, date, description, category, amount, capital, adjust, project_id, project_share, receipt_path'
 
 // One form for both jobs: adding a transaction and editing an existing one.
 // They differ only in which query runs on submit, so keeping them apart would
@@ -37,6 +39,8 @@ export default function TxForm({
   )
   const [amount, setAmount] = useState(tx ? String(Math.abs(tx.amount)) : '')
   const [capital, setCapital] = useState(tx ? tx.capital : false)
+  const [receiptPath, setReceiptPath] = useState(tx ? tx.receipt_path : null)
+  const [uploading, setUploading] = useState(false)
   // once he edits the category himself, stop guessing at it
   const [categoryTouched, setCategoryTouched] = useState(editing)
   const [error, setError] = useState('')
@@ -70,6 +74,7 @@ export default function TxForm({
       project_share: projectId ? Number(share) || 100 : 100,
       amount: direction === 'out' ? -magnitude : magnitude,
       capital: direction === 'in' ? capital : false,
+      receipt_path: receiptPath,
     }
 
     const query = editing
@@ -88,8 +93,40 @@ export default function TxForm({
     setBusy(true)
     const { error } = await supabase.from('txs').delete().eq('id', tx.id)
     if (error) setError(error.message)
-    else onDeleted(tx.id)
+    else {
+      // the row is gone, so nothing points at the photo any more
+      if (tx.receipt_path) await deleteReceipt(tx.receipt_path)
+      onDeleted(tx.id)
+    }
     setBusy(false)
+  }
+
+  // Uploaded as soon as it is chosen rather than on save: he is standing in a
+  // yard with a receipt in one hand, and a photo that only uploads later is a
+  // photo that fails later, when the form is gone and he has walked away.
+  async function handleReceipt(file) {
+    if (!file) return
+    setUploading(true)
+    setError('')
+    const { path, error } = await uploadReceipt(file)
+    if (error) setError(error)
+    else {
+      if (receiptPath) await deleteReceipt(receiptPath) // replacing, not accumulating
+      setReceiptPath(path)
+    }
+    setUploading(false)
+  }
+
+  async function openReceipt() {
+    const { url, error } = await receiptUrl(receiptPath)
+    if (error) setError(error)
+    else window.open(url, '_blank', 'noopener')
+  }
+
+  async function removeReceipt() {
+    const path = receiptPath
+    setReceiptPath(null)
+    if (path) await deleteReceipt(path)
   }
 
   return (
@@ -203,10 +240,38 @@ export default function TxForm({
         </label>
       )}
 
+      <div className="receipt">
+        {receiptPath ? (
+          <>
+            {/* the bucket is private, so the link has to be signed on demand —
+                there is no permanent URL to have stored alongside the row */}
+            <button type="button" className="ghost" onClick={openReceipt}>
+              צפייה בקבלה
+            </button>
+            <button type="button" className="danger" onClick={removeReceipt}>
+              הסרה
+            </button>
+          </>
+        ) : (
+          // `capture` opens the camera straight away on a phone rather than the
+          // file picker, which is the whole point of photographing it on the spot
+          <label className="file">
+            {uploading ? 'מעלה…' : '📷 צילום קבלה'}
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              capture="environment"
+              disabled={uploading}
+              onChange={(e) => handleReceipt(e.target.files[0])}
+            />
+          </label>
+        )}
+      </div>
+
       {error && <p className="error">{error}</p>}
 
       <div className="row">
-        <button type="submit" disabled={busy || !description.trim() || !amount}>
+        <button type="submit" disabled={busy || uploading || !description.trim() || !amount}>
           {busy ? 'שומר…' : 'שמירה'}
         </button>
         <button type="button" className="ghost" onClick={onCancel}>

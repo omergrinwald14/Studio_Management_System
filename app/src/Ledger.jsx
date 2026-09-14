@@ -232,6 +232,7 @@ export default function Ledger() {
                         </span>
                         {tx.capital && <span className="tag">הון בעלים</span>}
                         {tx.adjust && <span className="tag">התאמה</span>}
+                        {tx.receipt_path && <span className="tag">קבלה</span>}
                       </span>
                       <span className={`num ${tx.amount < 0 ? 'neg' : 'pos'}`}>
                         {formatMoney(tx.amount)}

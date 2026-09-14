@@ -487,3 +487,14 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
   padding:6px 14px; font-size:13px;
   background:var(--plane); color:var(--ink);
 }
+
+/* ---------- receipt attachment ---------- */
+.receipt { display:flex; align-items:center; gap:12px; }
+/* the input itself is hidden; the label is the button he actually taps */
+.file {
+  flex:1; text-align:center; cursor:pointer;
+  background:var(--surface); color:var(--accent);
+  border:1px dashed var(--ring); border-radius:10px;
+  padding:11px 16px; font-size:14px; font-weight:550;
+}
+.file input { display:none; }
