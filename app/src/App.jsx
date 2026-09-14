@@ -8,6 +8,7 @@ import Clients from './Clients'
 import Quotes from './Quotes'
 import Stock from './Stock'
 import Settings from './Settings'
+import Backup from './Backup'
 import More from './More'
 import UserMenu from './UserMenu'
 import UpdateNotice from './UpdateNotice'
@@ -27,6 +28,7 @@ const SCREENS = {
   stock: { title: 'שאריות בסדנה', parent: 'more', render: () => <Stock /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
+  backup: { title: 'גיבוי וייצוא', parent: 'more', render: () => <Backup /> },
 }
 
 export default function App() {

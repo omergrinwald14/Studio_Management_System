@@ -5,6 +5,7 @@ const ITEMS = [
   { id: 'stock', title: 'שאריות בסדנה', note: 'מה כבר יש לך, לפני שאתה קונה' },
   { id: 'clients', title: 'לקוחות', note: 'פרטי קשר וכל מה שנבנה עבורם' },
   { id: 'settings', title: 'הגדרות', note: 'יתרת פתיחה, שכירות, ימי סדנה, תעריף יום' },
+  { id: 'backup', title: 'גיבוי וייצוא', note: 'הורדת עותק של כל הנתונים, וקבצים לרואה החשבון' },
 ]
 
 export default function More({ go }) {
