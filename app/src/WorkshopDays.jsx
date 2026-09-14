@@ -1,37 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from './lib/supabase'
-import { formatDate, todayISO, startOfWeek, startOfMonth } from './lib/format'
+import { formatDate, todayISO, startOfWeek } from './lib/format'
 
 // How much he has worked and how much capacity is left — a business measure,
 // with no project attached. Weekly and monthly are both date ranges over the
 // same rows, which is the whole reason the log stores dates instead of a count.
-export default function WorkshopDays({ daysPerMonth }) {
-  const [days, setDays] = useState([])
+//
+// The rows arrive as a prop rather than being fetched here: a child's request
+// cannot start until its parent's has finished, which made two round trips that
+// could have run together run one after the other.
+export default function WorkshopDays({ daysPerMonth, days, onChanged }) {
   const [open, setOpen] = useState(false) // the log-a-day form
   const [date, setDate] = useState(todayISO())
   const [amount, setAmount] = useState('1')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [loading, setLoading] = useState(true)
 
-  const monthStart = startOfMonth()
   const weekStart = startOfWeek()
-
-  useEffect(() => {
-    // Only this month is needed on the dashboard; the week is a subset of it.
-    supabase
-      .from('workshop_days')
-      .select('date, days')
-      .gte('date', monthStart)
-      .order('date', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setDays(data)
-        setLoading(false)
-      })
-  }, [monthStart])
-
-  if (loading) return null
 
   const monthUsed = sum(days)
   const weekUsed = sum(days.filter((row) => row.date >= weekStart))
@@ -55,7 +40,7 @@ export default function WorkshopDays({ daysPerMonth }) {
 
     if (error) setError(error.message)
     else {
-      setDays([data, ...days.filter((row) => row.date !== data.date)].sort((a, b) => b.date.localeCompare(a.date)))
+      onChanged([data, ...days.filter((row) => row.date !== data.date)].sort((a, b) => b.date.localeCompare(a.date)))
       setOpen(false)
       setDate(todayISO())
       setAmount('1')
@@ -67,7 +52,7 @@ export default function WorkshopDays({ daysPerMonth }) {
     setBusy(true)
     const { error } = await supabase.from('workshop_days').delete().eq('date', rowDate)
     if (error) setError(error.message)
-    else setDays(days.filter((row) => row.date !== rowDate))
+    else onChanged(days.filter((row) => row.date !== rowDate))
     setBusy(false)
   }
 

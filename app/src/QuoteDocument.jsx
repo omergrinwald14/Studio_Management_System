@@ -4,13 +4,14 @@ import { formatMoney, formatDate } from './lib/format'
 import { componentPrice } from './lib/finance'
 
 // The quote as the client sees it — the only screen in the system written for
-// someone other than him. Everything internal stays out: no cost, no markup, no
-// overhead line. A customer-facing quote that shows "workshop rent: 900₪"
-// invites an argument about a number that is none of their business.
+// someone other than him.
 //
-// Saved as a PDF through the browser's own Print dialog rather than a PDF
-// library: it works on his phone, adds nothing to the bundle, and what he sees
-// on screen is exactly what comes out.
+// It itemises everything: the wood, the consumables, the labour and the
+// workshop's running costs, each with its own discount spelled out. An earlier
+// version folded the overhead into labour and hid the consumables, on the
+// argument that a client should not be handed the shop's cost structure. He
+// overruled it: he would rather the client see exactly what he is paying for,
+// and a discount is worth nothing if the client cannot see it was given.
 export default function QuoteDocument({ quote, project, client, settings, onBack }) {
   const [items, setItems] = useState([])
   const [error, setError] = useState('')
@@ -19,7 +20,7 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
   useEffect(() => {
     supabase
       .from('quote_items')
-      .select('name, qty, unit_cost')
+      .select('id, name, qty, unit_cost')
       .eq('quote_id', quote.id)
       .order('id')
       .then(({ data, error }) => {
@@ -32,49 +33,59 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
   if (loading) return <p>טוען…</p>
   if (error) return <p className="error">{error}</p>
 
-  const materialsCost = items.reduce(
-    (total, item) => total + Number(item.qty || 0) * Number(item.unit_cost || 0),
-    0,
-  )
+  const markup = quote.markup
   const labourCost =
     Number(quote.hours) > 0
       ? Number(quote.hours) * Number(quote.hourly_rate)
       : Number(quote.planned_days) * Number(quote.day_rate)
-  const overheadCost = Number(quote.planned_days) * Number(quote.overhead_day)
 
-  // Overhead is folded into the labour line here. It is a real cost and it is
-  // in the price either way, but to a client "the work" is one thing.
+  // One row per thing he actually bought or spent, each priced and discounted
+  // on its own so the client can see where a concession was made.
   const lines = [
+    ...items.map((item) => ({
+      key: `item${item.id}`,
+      label: item.name === 'מתכלים' ? 'חומרים מתכלים' : item.name,
+      detail:
+        item.name === 'מתכלים'
+          ? 'שיוף, דבקים, גימור וכלי עבודה מתכלים'
+          : `${item.qty} קו"ב`,
+      cost: Number(item.qty) * Number(item.unit_cost),
+      discountPercent: quote.materials_discount,
+    })),
     {
-      label: 'חומרים',
-      detail: items
-        .filter((item) => item.name !== 'מתכלים')
-        .map((item) => `${item.name} · ${item.qty} קו"ב`)
-        .join(' · '),
-      before: componentPrice(materialsCost, quote.markup, 0),
-      after: componentPrice(materialsCost, quote.markup, quote.materials_discount),
-    },
-    {
+      key: 'labour',
       label: 'עבודה',
       detail:
         Number(quote.hours) > 0
           ? `${quote.hours} שעות עבודה`
           : `${quote.planned_days} ימי עבודה בסדנה`,
-      before:
-        componentPrice(labourCost, quote.markup, 0) + componentPrice(overheadCost, quote.markup, 0),
-      after:
-        componentPrice(labourCost, quote.markup, quote.labour_discount) +
-        componentPrice(overheadCost, quote.markup, quote.overhead_discount),
+      cost: labourCost,
+      discountPercent: quote.labour_discount,
     },
-  ].filter((line) => line.before > 0)
+    {
+      key: 'overhead',
+      label: 'תפעול הנגריה',
+      detail: `${quote.planned_days} ימי סדנה`,
+      cost: Number(quote.planned_days) * Number(quote.overhead_day),
+      discountPercent: quote.overhead_discount,
+    },
+  ]
+    .map((line) => {
+      const before = componentPrice(line.cost, markup, 0)
+      const after = componentPrice(line.cost, markup, line.discountPercent)
+      return { ...line, before, after, discount: before - after }
+    })
+    .filter((line) => line.before > 0)
 
   const beforeDiscount = lines.reduce((total, line) => total + line.before, 0)
   const afterDiscount = lines.reduce((total, line) => total + line.after, 0)
-  const discount = beforeDiscount - afterDiscount
+  const discounted = lines.filter((line) => line.discount > 0)
   // He can type a final price over the computed one, so the lines will not
   // always add up to it. Showing the gap as its own line keeps the arithmetic
   // honest instead of quietly presenting numbers that do not sum.
   const adjustment = Number(quote.price) - afterDiscount
+
+  const deposit = Math.round((Number(quote.price) * Number(quote.deposit_percent || 0)) / 100)
 
   return (
     <>
@@ -99,7 +110,11 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
           <div>
             <h1>{settings.business_name || 'סטודיו לנגרות'}</h1>
             <p className="doc-contact">
-              {[settings.business_phone, settings.business_email, settings.business_id && `עוסק ${settings.business_id}`]
+              {[
+                settings.business_phone,
+                settings.business_email,
+                settings.business_id && `עוסק ${settings.business_id}`,
+              ]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
@@ -138,7 +153,7 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
           </thead>
           <tbody>
             {lines.map((line) => (
-              <tr key={line.label}>
+              <tr key={line.key}>
                 <td>
                   <span className="doc-line">{line.label}</span>
                   {line.detail && <span className="doc-detail">{line.detail}</span>}
@@ -148,18 +163,21 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
             ))}
           </tbody>
           <tfoot>
-            {discount > 0 && (
-              <>
-                <tr>
-                  <td>סה"כ</td>
-                  <td className="num">{formatMoney(beforeDiscount)}</td>
-                </tr>
-                <tr>
-                  <td>הנחה</td>
-                  <td className="num">{formatMoney(-discount)}</td>
-                </tr>
-              </>
+            {discounted.length > 0 && (
+              <tr>
+                <td>סה"כ לפני הנחה</td>
+                <td className="num">{formatMoney(beforeDiscount)}</td>
+              </tr>
             )}
+            {/* every concession named, so the client can see what was given */}
+            {discounted.map((line) => (
+              <tr key={`d${line.key}`} className="doc-discount">
+                <td>
+                  הנחה על {line.label} ({line.discountPercent}%)
+                </td>
+                <td className="num">{formatMoney(-line.discount)}</td>
+              </tr>
+            ))}
             {adjustment !== 0 && (
               <tr>
                 <td>התאמת מחיר</td>
@@ -170,6 +188,18 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
               <td>סה"כ לתשלום</td>
               <td className="num">{formatMoney(quote.price)}</td>
             </tr>
+            {deposit > 0 && (
+              <>
+                <tr>
+                  <td>מקדמה לתשלום עם אישור ההצעה ({quote.deposit_percent}%)</td>
+                  <td className="num">{formatMoney(deposit)}</td>
+                </tr>
+                <tr>
+                  <td>היתרה בעת המסירה</td>
+                  <td className="num">{formatMoney(Number(quote.price) - deposit)}</td>
+                </tr>
+              </>
+            )}
           </tfoot>
         </table>
 

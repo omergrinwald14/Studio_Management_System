@@ -24,40 +24,64 @@ export default function QuoteBuilder({
   settings,
   woodSpecies = [],
   woodPriceRecall = {},
+  quote = null, // the quote being edited, if any
+  project = null, // its project, so the name and dates can be edited too
+  editItems = [], // its saved lines
   onSaved,
   onClientAdded,
   onCancel,
 }) {
   const listId = useId()
 
-  const [name, setName] = useState('')
-  const [clientId, setClientId] = useState(clients.length ? String(clients[0].id) : 'new')
+  // Editing an existing quote reuses this whole form — same fields, same
+  // arithmetic — and differs only in what the save writes.
+  const editing = Boolean(quote)
+  const wood = editItems.find((item) => item.name !== 'מתכלים')
+  const consumablesItem = editItems.find((item) => item.name === 'מתכלים')
+
+  const [name, setName] = useState(project ? project.name : '')
+  const [clientId, setClientId] = useState(
+    project ? String(project.client_id) : clients.length ? String(clients[0].id) : 'new',
+  )
   const [newClient, setNewClient] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [newAddress, setNewAddress] = useState('')
 
-  const [consumables, setConsumables] = useState(String(DEFAULT_CONSUMABLES))
-  const [woodName, setWoodName] = useState('')
-  const [woodQty, setWoodQty] = useState('')
-  const [woodPrice, setWoodPrice] = useState('')
+  const [consumables, setConsumables] = useState(
+    consumablesItem ? String(consumablesItem.unit_cost) : String(DEFAULT_CONSUMABLES),
+  )
+  const [woodName, setWoodName] = useState(wood ? wood.name : '')
+  const [woodQty, setWoodQty] = useState(wood ? String(wood.qty) : '')
+  const [woodPrice, setWoodPrice] = useState(wood ? String(wood.unit_cost) : '')
   // once he edits the price himself, stop overwriting it with the recalled one
-  const [woodPriceTouched, setWoodPriceTouched] = useState(false)
+  const [woodPriceTouched, setWoodPriceTouched] = useState(editing)
 
-  const [plannedDays, setPlannedDays] = useState('')
-  const [labourMode, setLabourMode] = useState('days') // 'days' | 'hours'
-  const [dayRate, setDayRate] = useState(String(settings.day_rate ?? ''))
-  const [hours, setHours] = useState('')
-  const [hourlyRate, setHourlyRate] = useState(String(settings.hourly_rate ?? ''))
+  const [plannedDays, setPlannedDays] = useState(quote ? String(quote.planned_days) : '')
+  const [labourMode, setLabourMode] = useState(quote ? quote.labour_mode : 'days') // 'days' | 'hours'
+  const [dayRate, setDayRate] = useState(
+    String((quote ? quote.day_rate : settings.day_rate) ?? ''),
+  )
+  const [hours, setHours] = useState(quote ? String(quote.hours) : '')
+  const [hourlyRate, setHourlyRate] = useState(
+    String((quote ? quote.hourly_rate : settings.hourly_rate) ?? ''),
+  )
 
-  const [markup, setMarkup] = useState('25')
-  const [materialsDiscount, setMaterialsDiscount] = useState('0')
-  const [labourDiscount, setLabourDiscount] = useState('0')
-  const [overheadDiscount, setOverheadDiscount] = useState('0')
+  const [markup, setMarkup] = useState(quote ? String(quote.markup) : '25')
+  const [materialsDiscount, setMaterialsDiscount] = useState(
+    quote ? String(quote.materials_discount) : '0',
+  )
+  const [labourDiscount, setLabourDiscount] = useState(quote ? String(quote.labour_discount) : '0')
+  const [overheadDiscount, setOverheadDiscount] = useState(
+    quote ? String(quote.overhead_discount) : '0',
+  )
+  const [depositPercent, setDepositPercent] = useState(
+    quote ? String(quote.deposit_percent) : '0',
+  )
 
-  const [price, setPrice] = useState('')
-  const [priceTouched, setPriceTouched] = useState(false)
-  const [due, setDue] = useState('')
-  const [decisionDue, setDecisionDue] = useState('')
+  const [price, setPrice] = useState(quote ? String(quote.price) : '')
+  const [priceTouched, setPriceTouched] = useState(editing)
+  const [due, setDue] = useState(project && project.due ? project.due : '')
+  const [decisionDue, setDecisionDue] = useState(quote && quote.decision_due ? quote.decision_due : '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -118,53 +142,71 @@ export default function QuoteBuilder({
 
     // A quote creates its project at once, parked at the quote stage — so the
     // same job is reachable from the quotes list, the projects list and the
-    // dashboard instead of existing twice under two names.
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .insert({
-        name: name.trim(),
-        client_id: Number(id),
-        stage: QUOTE_STAGE,
-        price: finalPrice,
-        opened: todayISO(),
-        due: due || null,
-        days: 0,
-        planned_days: Number(plannedDays) || 0,
-        lost: false,
-      })
+    // dashboard instead of existing twice under two names. Editing a quote
+    // edits that same project rather than making a second one.
+    const projectValues = {
+      name: name.trim(),
+      client_id: Number(id),
+      price: finalPrice,
+      due: due || null,
+      planned_days: Number(plannedDays) || 0,
+    }
+    const { data: savedProject, error: projectError } = await (editing
+      ? supabase.from('projects').update(projectValues).eq('id', project.id)
+      : supabase.from('projects').insert({
+          ...projectValues,
+          stage: QUOTE_STAGE,
+          opened: todayISO(),
+          days: 0,
+          lost: false,
+        })
+    )
       .select('id, name, client_id, stage, price, opened, due, days, planned_days, lost')
       .single()
     if (projectError) return fail(projectError)
 
-    const { data: quote, error: quoteError } = await supabase
-      .from('quotes')
-      .insert({
-        project_id: project.id,
-        planned_days: Number(plannedDays) || 0,
-        day_rate: Number(dayRate) || 0,
-        overhead_day: overheadDay,
-        labour_mode: labourMode,
-        hours: labourMode === 'hours' ? Number(hours) || 0 : 0,
-        hourly_rate: Number(hourlyRate) || 0,
-        markup: Number(markup) || 0,
-        materials_discount: Number(materialsDiscount) || 0,
-        labour_discount: Number(labourDiscount) || 0,
-        overhead_discount: Number(overheadDiscount) || 0,
-        price: finalPrice,
-        sent: todayISO(),
-        decision_due: decisionDue || null,
-      })
+    const quoteValues = {
+      planned_days: Number(plannedDays) || 0,
+      day_rate: Number(dayRate) || 0,
+      overhead_day: overheadDay,
+      labour_mode: labourMode,
+      hours: labourMode === 'hours' ? Number(hours) || 0 : 0,
+      hourly_rate: Number(hourlyRate) || 0,
+      markup: Number(markup) || 0,
+      materials_discount: Number(materialsDiscount) || 0,
+      labour_discount: Number(labourDiscount) || 0,
+      overhead_discount: Number(overheadDiscount) || 0,
+      deposit_percent: Number(depositPercent) || 0,
+      price: finalPrice,
+      decision_due: decisionDue || null,
+    }
+    const { data: savedQuote, error: quoteError } = await (editing
+      ? supabase.from('quotes').update(quoteValues).eq('id', quote.id)
+      : supabase
+          .from('quotes')
+          .insert({ ...quoteValues, project_id: savedProject.id, sent: todayISO() })
+    )
       .select('*')
       .single()
     if (quoteError) return fail(quoteError)
 
+    // There are only ever two lines, so replacing them wholesale is simpler and
+    // harder to get wrong than working out which of them changed.
+    if (editing) {
+      const { error: clearError } = await supabase
+        .from('quote_items')
+        .delete()
+        .eq('quote_id', savedQuote.id)
+      if (clearError) return fail(clearError)
+    }
+
     const lines = []
     if (Number(consumables) > 0) {
-      lines.push({ quote_id: quote.id, name: 'מתכלים', qty: 1, unit_cost: Number(consumables) })
+      lines.push({ quote_id: savedQuote.id, name: 'מתכלים', qty: 1, unit_cost: Number(consumables) })
     }
     if (woodName.trim() && Number(woodQty) > 0) {
       lines.push({
-        quote_id: quote.id,
+        quote_id: savedQuote.id,
         name: woodName.trim(),
         qty: Number(woodQty),
         unit_cost: Number(woodPrice) || 0,
@@ -184,7 +226,11 @@ export default function QuoteBuilder({
     setBusy(false)
     // only the wood line feeds next time's species suggestions — מתכלים is not
     // a species, and Quotes.jsx already excludes it from what it fetches
-    onSaved({ ...quote, project, items: savedItems.filter((item) => item.name !== 'מתכלים') })
+    onSaved({
+      ...savedQuote,
+      project: savedProject,
+      items: savedItems.filter((item) => item.name !== 'מתכלים'),
+    })
 
     function fail(failure) {
       setError(failure.message)
@@ -463,6 +509,31 @@ export default function QuoteBuilder({
         </p>
       )}
 
+      <label>
+        מקדמה (% מהמחיר)
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          max="100"
+          value={depositPercent}
+          onChange={(e) => setDepositPercent(e.target.value)}
+        />
+      </label>
+      {Number(depositPercent) > 0 && (
+        // kept as a percentage so it follows the price, but he is quoting a
+        // shekel figure to a client, so show him the figure
+        <p className="note">
+          מקדמה: <span className="num">{formatMoney(Math.round((finalPrice * Number(depositPercent)) / 100))}</span>
+          <span className="muted">
+            {' · '}היתרה במסירה:{' '}
+            <span className="num">
+              {formatMoney(finalPrice - Math.round((finalPrice * Number(depositPercent)) / 100))}
+            </span>
+          </span>
+        </p>
+      )}
+
       <div className="row">
         <label>
           תאריך מסירה
@@ -482,7 +553,7 @@ export default function QuoteBuilder({
 
       <div className="row">
         <button type="submit" disabled={busy || !name.trim() || needsClientName}>
-          {busy ? 'שומר…' : 'שמירת ההצעה'}
+          {busy ? 'שומר…' : editing ? 'שמירת השינויים' : 'שמירת ההצעה'}
         </button>
         <button type="button" className="ghost" onClick={onCancel}>
           ביטול

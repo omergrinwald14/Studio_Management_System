@@ -16,6 +16,8 @@ export default function Quotes() {
   const [settings, setSettings] = useState(null)
   const [woodItems, setWoodItems] = useState([])
   const [building, setBuilding] = useState(false)
+  const [editing, setEditing] = useState(null) // the quote being edited, if any
+  const [editingItems, setEditingItems] = useState([])
   const [showing, setShowing] = useState(null) // the quote being shown as a document
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -71,6 +73,28 @@ export default function Quotes() {
 
   function projectOf(quote) {
     return projects.find((project) => project.id === quote.project_id)
+  }
+
+  // Its saved lines have to be in hand before the form opens, or the fields
+  // would appear empty and a save would wipe what is actually stored.
+  async function editQuote(quote) {
+    setError('')
+    const { data, error } = await supabase
+      .from('quote_items')
+      .select('id, name, qty, unit_cost')
+      .eq('quote_id', quote.id)
+      .order('id')
+
+    if (error) return setError(error.message)
+    setEditingItems(data)
+    setEditing(quote)
+    setBuilding(true)
+  }
+
+  function closeBuilder() {
+    setBuilding(false)
+    setEditing(null)
+    setEditingItems([])
   }
 
   function clientNameOf(project) {
@@ -143,14 +167,18 @@ export default function Quotes() {
           settings={settings}
           woodSpecies={woodSpecies}
           woodPriceRecall={woodPriceRecall}
+          quote={editing}
+          project={editing ? projectOf(editing) : null}
+          editItems={editingItems}
           onSaved={({ project, items, ...quote }) => {
-            setQuotes([quote, ...quotes])
-            setProjects([project, ...projects])
+            // an edited quote replaces its old row; a new one goes on top
+            setQuotes([quote, ...quotes.filter((q) => q.id !== quote.id)])
+            setProjects([project, ...projects.filter((p) => p.id !== project.id)])
             setWoodItems([...items, ...woodItems])
-            setBuilding(false)
+            closeBuilder()
           }}
           onClientAdded={(client) => setClients([...clients, client])}
-          onCancel={() => setBuilding(false)}
+          onCancel={closeBuilder}
         />
       ) : (
         <button type="button" className="add-toggle" onClick={() => setBuilding(true)}>
@@ -204,6 +232,11 @@ export default function Quotes() {
                   <div className="row">
                     <button type="button" className="ghost" onClick={() => setShowing(quote)}>
                       מסמך ללקוח
+                    </button>
+                    {/* only while it is still out with the client: once answered,
+                        the decision has already been copied onto the project */}
+                    <button type="button" className="ghost" onClick={() => editQuote(quote)}>
+                      עריכה
                     </button>
                   </div>
                 </li>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
-import { formatMoney, formatDate, todayISO, endOfMonth } from './lib/format'
+import { formatMoney, formatDate, todayISO, endOfMonth, startOfMonth } from './lib/format'
 import { balanceOf, receivablesOf, expectedMovements } from './lib/finance'
 import { STAGES, DONE } from './lib/stages'
 import WorkshopDays from './WorkshopDays'
@@ -14,6 +14,7 @@ export default function Dashboard({ go }) {
   const [txs, setTxs] = useState([])
   const [projects, setProjects] = useState([])
   const [clients, setClients] = useState([])
+  const [workshopDays, setWorkshopDays] = useState([])
   const [spend, setSpend] = useState('')
   const [until, setUntil] = useState(endOfMonth())
   const [bank, setBank] = useState('')
@@ -36,15 +37,28 @@ export default function Dashboard({ go }) {
       // a rejected quote's project is kept as history (lost = true) and owes nothing
       supabase.from('projects').select('id, name, client_id, price, due, stage').eq('lost', false),
       supabase.from('clients').select('id, name'),
-    ]).then(([settingsResult, txsResult, projectsResult, clientsResult]) => {
+      // fetched here rather than inside WorkshopDays: a child cannot start its
+      // own request until its parent has finished, which turned two parallel
+      // round trips into two sequential ones on the screen he opens most
+      supabase
+        .from('workshop_days')
+        .select('date, days')
+        .gte('date', startOfMonth())
+        .order('date', { ascending: false }),
+    ]).then(([settingsResult, txsResult, projectsResult, clientsResult, daysResult]) => {
       const failure =
-        settingsResult.error || txsResult.error || projectsResult.error || clientsResult.error
+        settingsResult.error ||
+        txsResult.error ||
+        projectsResult.error ||
+        clientsResult.error ||
+        daysResult.error
       if (failure) setError(failure.message)
       else {
         setSettings(settingsResult.data)
         setTxs(txsResult.data)
         setProjects(projectsResult.data)
         setClients(clientsResult.data)
+        setWorkshopDays(daysResult.data)
       }
       setLoading(false)
     })
@@ -203,7 +217,11 @@ export default function Dashboard({ go }) {
         )}
       </section>
 
-      <WorkshopDays daysPerMonth={settings.days_per_month} />
+      <WorkshopDays
+        daysPerMonth={settings.days_per_month}
+        days={workshopDays}
+        onChanged={setWorkshopDays}
+      />
 
       <section className="card forecast">
         <div className="fc-head">
