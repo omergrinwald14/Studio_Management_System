@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
+import { useCached, isCached } from './lib/cache'
 import ProjectForm from './ProjectForm'
 import ProjectCard from './ProjectCard'
 
@@ -14,13 +15,13 @@ const FILTERS = [
 // The projects screen: every job, its client, and where it sits in the pipeline.
 // Tapping one opens its card in place.
 export default function Projects({ openId: initialOpenId = null }) {
-  const [projects, setProjects] = useState([])
-  const [clients, setClients] = useState([])
+  const [projects, setProjects] = useCached('projects:projects', [])
+  const [clients, setClients] = useCached('projects:clients', [])
   const [openId, setOpenId] = useState(initialOpenId)
   const [filter, setFilter] = useState('live')
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isCached('projects:projects'))
 
   useEffect(() => {
     // Both lists are needed before the screen means anything, so fetch them
@@ -41,7 +42,7 @@ export default function Projects({ openId: initialOpenId = null }) {
       }
       setLoading(false)
     })
-  }, [])
+  }, [setProjects, setClients])
 
   function findClient(id) {
     return clients.find((client) => client.id === id)

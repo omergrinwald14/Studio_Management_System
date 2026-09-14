@@ -233,8 +233,6 @@ export default function Quotes() {
                     <button type="button" className="ghost" onClick={() => setShowing(quote)}>
                       מסמך ללקוח
                     </button>
-                    {/* only while it is still out with the client: once answered,
-                        the decision has already been copied onto the project */}
                     <button type="button" className="ghost" onClick={() => editQuote(quote)}>
                       עריכה
                     </button>
@@ -255,9 +253,8 @@ export default function Quotes() {
             {answered.map((quote) => {
               const project = projectOf(quote)
               return (
-                <li key={quote.id}>
-                  {/* a settled quote is still a document he may need to resend */}
-                  <button type="button" className="row-btn" onClick={() => setShowing(quote)}>
+                <li key={quote.id} className="stacked">
+                  <div className="quote-head">
                     <span className="what">
                       <span className="desc">{project ? project.name : '—'}</span>
                       <span className="cat">
@@ -271,7 +268,18 @@ export default function Quotes() {
                       </span>
                     </span>
                     <span className="num">{formatMoney(quote.price)}</span>
-                  </button>
+                  </div>
+                  <div className="row">
+                    <button type="button" className="ghost" onClick={() => setShowing(quote)}>
+                      מסמך ללקוח
+                    </button>
+                    {/* editable after the decision too: correcting a figure on a
+                        job he already won is the common case, and saving writes
+                        the corrected price back onto the project */}
+                    <button type="button" className="ghost" onClick={() => editQuote(quote)}>
+                      עריכה
+                    </button>
+                  </div>
                 </li>
               )
             })}

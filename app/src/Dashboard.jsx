@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { useCached, isCached } from './lib/cache'
 import { formatMoney, formatDate, todayISO, endOfMonth, startOfMonth } from './lib/format'
 import { balanceOf, receivablesOf, expectedMovements } from './lib/finance'
 import { STAGES, DONE } from './lib/stages'
@@ -10,18 +11,19 @@ import ShortList from './ShortList'
 // is left if he spends this, and what the balance looks like on a date he picks.
 // Forward-looking, not a report of the past (D9).
 export default function Dashboard({ go }) {
-  const [settings, setSettings] = useState(null)
-  const [txs, setTxs] = useState([])
-  const [projects, setProjects] = useState([])
-  const [clients, setClients] = useState([])
-  const [workshopDays, setWorkshopDays] = useState([])
+  const [settings, setSettings] = useCached('dashboard:settings', null)
+  const [txs, setTxs] = useCached('dashboard:txs', [])
+  const [projects, setProjects] = useCached('dashboard:projects', [])
+  const [clients, setClients] = useCached('dashboard:clients', [])
+  const [workshopDays, setWorkshopDays] = useCached('dashboard:days', [])
   const [spend, setSpend] = useState('')
   const [until, setUntil] = useState(endOfMonth())
   const [bank, setBank] = useState('')
   const [showBank, setShowBank] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [loading, setLoading] = useState(true)
+  // already have last time's numbers? show them and refresh behind the scenes
+  const [loading, setLoading] = useState(!isCached('dashboard:settings'))
 
   useEffect(() => {
     Promise.all([
@@ -62,7 +64,7 @@ export default function Dashboard({ go }) {
       }
       setLoading(false)
     })
-  }, [])
+  }, [setSettings, setTxs, setProjects, setClients, setWorkshopDays])
 
   if (loading) return <p>טוען…</p>
   if (error) return <p className="error">{error}</p>

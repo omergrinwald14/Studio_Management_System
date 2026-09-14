@@ -2,19 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatMonth, formatDay, formatDate, todayISO } from './lib/format'
 import { cashFlowBreakdown, sum, missingRentDates } from './lib/finance'
+import { useCached, isCached } from './lib/cache'
 import TxForm from './TxForm'
 
 // The ledger: every transaction newest first, grouped by month with a subtotal —
 // the shape he already reads in his spreadsheet.
 export default function Ledger() {
-  const [txs, setTxs] = useState([])
-  const [projects, setProjects] = useState([])
-  const [settings, setSettings] = useState(null)
+  const [txs, setTxs] = useCached('ledger:txs', [])
+  const [projects, setProjects] = useCached('ledger:projects', [])
+  const [settings, setSettings] = useCached('ledger:settings', null)
   const [filter, setFilter] = useState('all')
   const [editingId, setEditingId] = useState(null) // null = nothing open, 'new' = the add form
   const [error, setError] = useState('')
   const [bookingRent, setBookingRent] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isCached('ledger:settings'))
 
   useEffect(() => {
     // Fetched together rather than one after the other: the screen is not usable
@@ -37,7 +38,7 @@ export default function Ledger() {
       }
       setLoading(false)
     })
-  }, [])
+  }, [setTxs, setProjects, setSettings])
 
   // This component owns the list, so every change lands here — one place that
   // decides what the ledger holds, instead of each form keeping its own copy.
