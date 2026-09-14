@@ -1,6 +1,7 @@
 // The hub for everything that does not deserve a tab of its own. It exists so
 // the bottom bar stays at four thumb-sized targets however much the system grows.
 const ITEMS = [
+  { id: 'search', title: 'חיפוש', note: 'בכל המערכת בבת אחת — לקוחות, תנועות, לקחים' },
   { id: 'quotes', title: 'הצעות מחיר', note: 'תמחור פרויקט חדש ומעקב אחרי תשובות' },
   { id: 'stock', title: 'שאריות בסדנה', note: 'מה כבר יש לך, לפני שאתה קונה' },
   { id: 'clients', title: 'לקוחות', note: 'פרטי קשר וכל מה שנבנה עבורם' },

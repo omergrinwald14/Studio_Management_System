@@ -8,6 +8,7 @@ import Clients from './Clients'
 import Quotes from './Quotes'
 import Suppliers from './Suppliers'
 import Lessons from './Lessons'
+import Search from './Search'
 import Stock from './Stock'
 import Settings from './Settings'
 import Backup from './Backup'
@@ -31,6 +32,7 @@ const SCREENS = {
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   suppliers: { title: 'ספקים', parent: 'more', render: () => <Suppliers /> },
   lessons: { title: 'לקחים', parent: 'more', render: () => <Lessons /> },
+  search: { title: 'חיפוש', parent: 'more', render: (go) => <Search go={go} /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
   backup: { title: 'גיבוי וייצוא', parent: 'more', render: () => <Backup /> },
 }
