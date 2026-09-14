@@ -6,6 +6,7 @@ import Ledger from './Ledger'
 import Projects from './Projects'
 import Clients from './Clients'
 import Quotes from './Quotes'
+import Suppliers from './Suppliers'
 import Stock from './Stock'
 import Settings from './Settings'
 import Backup from './Backup'
@@ -27,6 +28,7 @@ const SCREENS = {
   quotes: { title: 'הצעות מחיר', parent: 'more', render: () => <Quotes /> },
   stock: { title: 'שאריות בסדנה', parent: 'more', render: () => <Stock /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
+  suppliers: { title: 'ספקים', parent: 'more', render: () => <Suppliers /> },
   settings: { title: 'הגדרות', parent: 'more', render: () => <Settings /> },
   backup: { title: 'גיבוי וייצוא', parent: 'more', render: () => <Backup /> },
 }
