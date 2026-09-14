@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney } from './lib/format'
+import { useAppVersion } from './lib/version'
 
 // Everything he can change himself (D12). These are not constants in the code:
 // the rent and the workshop-days figure feed the overhead rate that every quote
@@ -200,6 +201,30 @@ export default function Settings() {
         </button>
         {status && <span className="saved">{status}</span>}
       </div>
+
+      <Version />
     </form>
+  )
+}
+
+// Tucked at the foot of settings rather than raised as a banner, at his
+// request. The check still runs on its own in the background — this is only
+// where the answer is reported and acted on.
+function Version() {
+  const { stale, checking, reload } = useAppVersion()
+
+  return (
+    <p className="version">
+      {stale ? (
+        <>
+          <span>יצאה גרסה חדשה</span>
+          <button type="button" className="link" onClick={reload}>
+            רענון
+          </button>
+        </>
+      ) : (
+        <span className="muted">{checking ? 'בודק עדכונים…' : 'הגרסה מעודכנת'}</span>
+      )}
+    </p>
   )
 }
