@@ -4,7 +4,7 @@
 
 const KEY = 'theme'
 export const THEMES = [
-  { id: 'auto', label: 'לפי המכשיר' },
+  { id: 'auto', label: 'מערכת' }, // short on purpose: all three sit on one line
   { id: 'light', label: 'בהיר' },
   { id: 'dark', label: 'כהה' },
 ]

@@ -5,10 +5,27 @@ import { THEMES, readTheme, applyTheme } from './lib/theme'
 // The standard account control: an avatar in the header corner that opens a
 // small menu. It keeps the identity and the sign-out button available without
 // letting either compete with the screen's actual content.
+//
+// The menu is positioned `fixed` and measured off the avatar each time it
+// opens. Absolute positioning looked equivalent but was not: an absolutely
+// positioned box still counts towards the page's scrollable area, so opening
+// the menu grew the document — sideways past the edge, and downwards on a short
+// screen. A fixed box contributes nothing to layout at all, which is exactly
+// what "overlay what is beneath it" means.
 export default function UserMenu({ email }) {
   const [open, setOpen] = useState(false)
+  const [at, setAt] = useState({ top: 0, left: 0 })
   const [theme, setTheme] = useState(readTheme)
   const wrapper = useRef(null) // a handle on the real DOM node, to test clicks against
+
+  function toggle() {
+    if (open) return setOpen(false)
+    // The header is taller on screens that carry a back button, so the position
+    // is measured rather than assumed from a constant.
+    const rect = wrapper.current.getBoundingClientRect()
+    setAt({ top: rect.bottom + 8, left: rect.left })
+    setOpen(true)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -20,13 +37,18 @@ export default function UserMenu({ email }) {
     function onKeyDown(event) {
       if (event.key === 'Escape') setOpen(false)
     }
+    // a fixed menu would otherwise sit still while the page moves under it
+    const onScroll = () => setOpen(false)
+
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('scroll', onScroll, { passive: true })
     // Listeners live outside React, so they are ours to remove; without this
     // every open would leave another one behind.
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('scroll', onScroll)
     }
   }, [open])
 
@@ -35,7 +57,7 @@ export default function UserMenu({ email }) {
       <button
         type="button"
         className="avatar"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="החשבון שלי"
@@ -51,11 +73,10 @@ export default function UserMenu({ email }) {
       </button>
 
       {open && (
-        <div className="menu" role="menu">
+        <div className="menu" role="menu" style={{ top: at.top, left: at.left }}>
           <p className="menu-email">{email}</p>
 
           <div className="menu-theme">
-            <p className="menu-label">תצוגה</p>
             <div className="chips">
               {THEMES.map((option) => (
                 <button

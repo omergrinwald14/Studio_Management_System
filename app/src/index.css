@@ -91,18 +91,14 @@ button:disabled { opacity:.6; cursor:default; }
 }
 .avatar:hover { color:var(--ink); }
 
-/* inset-inline-start, not left: it follows the page direction on its own */
+/* Fixed, and placed from a measurement taken when it opens (see UserMenu):
+   a fixed box adds nothing to the page's scrollable area, so opening the menu
+   cannot grow the document in either direction. It opens rightwards from the
+   avatar's own left edge, which is what keeps it on screen in RTL. */
 .menu {
-  position:absolute; top:calc(100% + 8px); z-index:10;
-  /* The avatar sits at the far edge of the header, so the menu has to open
-     *inwards*. Anchoring its start edge (inset-inline-start) pushed 200px of it
-     off the side of the page and widened the whole document; anchoring the end
-     edge opens it back across the screen instead. */
-  inset-inline-end:0;
-  min-width:200px;
-  /* and never wider than the screen it is opening on, whatever the content */
-  max-width:calc(100vw - 32px);
-  padding:6px;
+  position:fixed; z-index:30;
+  width:190px; max-width:calc(100vw - 24px);
+  padding:5px;
   background:var(--surface); border:1px solid var(--ring);
   border-radius:12px; box-shadow:var(--shadow);
 }
@@ -363,11 +359,11 @@ section.card { margin-bottom:16px; }
 .meter i.over { background:var(--neg); }
 
 /* ---------- theme switch inside the account menu ---------- */
-.menu-theme { padding:10px 10px 4px; border-bottom:1px solid var(--ring); }
-.menu-label { margin:0 0 8px; font-size:11.5px; font-weight:650;
-  letter-spacing:.05em; color:var(--ink-muted); }
-.menu-theme .chips { margin:0 0 8px; gap:6px; flex-wrap:wrap; }
-.menu-theme .chip { padding:5px 10px; font-size:12px; }
+/* the three options fit one line now that 'auto' is one short word, which is
+   what keeps the whole menu to four compact rows */
+.menu-theme { padding:8px 6px; border-bottom:1px solid var(--ring); }
+.menu-theme .chips { margin:0; gap:4px; }
+.menu-theme .chip { flex:1; padding:5px 4px; font-size:11.5px; text-align:center; }
 
 .row-btn.column { flex-direction:column; align-items:stretch; gap:8px; }
 .row-btn.column .pipeline { margin:0; }
