@@ -498,3 +498,9 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
   padding:11px 16px; font-size:14px; font-weight:550;
 }
 .file input { display:none; }
+
+/* ---------- lessons ---------- */
+.chips.wrap { flex-wrap:wrap; }
+.lesson-text { display:block; font-size:14.5px; white-space:pre-wrap; }
+.lesson-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.lesson-tags .tag { margin:0; }
