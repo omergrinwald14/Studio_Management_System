@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- A dovetail joint, the mark of furniture made by hand: a light board and a
+       dark one locked together without a screw. Square and unrounded, because
+       iOS rounds the corners itself. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a2a20"/>
+      <stop offset="1" stop-color="#1f1612"/>
+    </linearGradient>
+    <linearGradient id="maple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4dcb0"/>
+      <stop offset="1" stop-color="#e3bf88"/>
+    </linearGradient>
+    <linearGradient id="walnut" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#be8754"/>
+      <stop offset="1" stop-color="#9a6436"/>
+    </linearGradient>
+    <clipPath id="block">
+      <rect x="106" y="126" width="300" height="260" rx="40"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- The joint sits a little below the block's centre: the eye weighs the
+       straight glue line, not the tails beneath it, and at the true centre the
+       join looked high. -->
+  <g clip-path="url(#block)">
+    <rect width="512" height="512" fill="url(#walnut)"/>
+    <path fill="url(#maple)" d="M0 0H512V236H351L365 298H297L311 236H201L215 298H147L161 236H0Z"/>
+    <path fill="none" stroke="#2a1d15" stroke-width="6" stroke-linejoin="round"
+          d="M0 236H161L147 298H215L201 236H311L297 298H365L351 236H512"/>
+  </g>
+</svg>
