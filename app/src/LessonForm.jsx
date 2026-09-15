@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from './lib/supabase'
 import { todayISO } from './lib/format'
 import { parseTags } from './lib/tags'
+import Suggest from './Suggest'
 
 const COLUMNS = 'id, project_id, date, text, tags'
 
@@ -73,17 +74,13 @@ export default function LessonForm({
 
       <label>
         תגיות
-        <input
+        <Suggest
+          multi
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
+          onChange={setTags}
+          options={knownTags}
           placeholder="מחסן עצים, גימור שמן, חיבורים"
-          list="known-tags"
         />
-        <datalist id="known-tags">
-          {knownTags.map((tag) => (
-            <option key={tag} value={tag} />
-          ))}
-        </datalist>
       </label>
       <p className="muted small">מפרידים בפסיק. תגית שכבר השתמשת בה תוצע להשלמה.</p>
 

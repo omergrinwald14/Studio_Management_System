@@ -1,4 +1,5 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
+import Suggest from './Suggest'
 import { supabase } from './lib/supabase'
 import { formatMoney, todayISO } from './lib/format'
 import { quoteCost, componentPrice, overheadPerDay } from './lib/finance'
@@ -31,8 +32,6 @@ export default function QuoteBuilder({
   onClientAdded,
   onCancel,
 }) {
-  const listId = useId()
-
   // Editing an existing quote reuses this whole form — same fields, same
   // arithmetic — and differs only in what the save writes.
   const editing = Boolean(quote)
@@ -294,16 +293,7 @@ export default function QuoteBuilder({
 
         <label>
           סוג עץ
-          <input
-            value={woodName}
-            onChange={(e) => handleWoodName(e.target.value)}
-            list={`${listId}-species`}
-          />
-          <datalist id={`${listId}-species`}>
-            {woodSpecies.map((species) => (
-              <option key={species} value={species} />
-            ))}
-          </datalist>
+          <Suggest value={woodName} onChange={handleWoodName} options={woodSpecies} />
         </label>
 
         <div className="row">

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { upload, signedUrls, remove } from './lib/storage'
+import Toast from './Toast'
+import { useFlash } from './lib/useFlash'
 
 const BUCKET = 'media'
 
@@ -20,6 +22,9 @@ export default function Gallery({ projectId }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [progress, setProgress] = useState(null) // { done, total } while uploading
+  const [justAdded, setJustAdded] = useState(new Set())
+  const [flash, showFlash] = useFlash()
 
   useEffect(() => {
     supabase
@@ -47,8 +52,11 @@ export default function Gallery({ projectId }) {
     if (!files.length) return
     setBusy(true)
     setError('')
+    let done = 0
+    const fresh = new Set()
 
     for (const file of files) {
+      setProgress({ done, total: files.length })
       const { path, error } = await upload(BUCKET, file, `project-${projectId}`)
       if (error) {
         setError(error)
@@ -65,11 +73,22 @@ export default function Gallery({ projectId }) {
         setError(rowError.message)
         break
       }
-      const { urls: fresh } = await signedUrls(BUCKET, [path])
+      const { urls: signed } = await signedUrls(BUCKET, [path])
       setItems((current) => [...current, data])
-      setUrls((current) => ({ ...current, ...fresh }))
+      setUrls((current) => ({ ...current, ...signed }))
+      fresh.add(data.id)
+      done += 1
     }
     setBusy(false)
+    setProgress(null)
+
+    if (done) {
+      const phaseLabel = PHASES.find((p) => p.id === phase).label
+      showFlash(done === 1 ? `✓ התמונה הועלתה · ${phaseLabel}` : `✓ ${done} תמונות הועלו · ${phaseLabel}`)
+      // the new tiles are marked for a moment, so he can see which ones landed
+      setJustAdded(fresh)
+      setTimeout(() => setJustAdded(new Set()), 2500)
+    }
   }
 
   async function togglePortfolio(item) {
@@ -88,6 +107,7 @@ export default function Gallery({ projectId }) {
     if (error) return setError(error.message)
     await remove(BUCKET, item.path)
     setItems(items.filter((row) => row.id !== item.id))
+    showFlash('התמונה נמחקה')
   }
 
   if (loading) return <p>טוען גלריה…</p>
@@ -109,16 +129,24 @@ export default function Gallery({ projectId }) {
         ))}
       </div>
 
-      <label className="file">
-        {busy ? 'מעלה…' : `📷 הוספת תמונות · ${PHASES.find((p) => p.id === phase).label}`}
+      <label className={`file${busy ? ' busy' : ''}`}>
+        {busy
+          ? progress && progress.total > 1
+            ? `מעלה ${progress.done + 1} מתוך ${progress.total}…`
+            : 'מעלה…'
+          : `📷 הוספת תמונות · ${PHASES.find((p) => p.id === phase).label}`}
         <input
           type="file"
           accept="image/*"
           multiple
           disabled={busy}
-          onChange={(e) => addPhotos([...e.target.files])}
+          onChange={(e) => {
+            addPhotos([...e.target.files])
+            e.target.value = '' // so picking the same photos again still fires
+          }}
         />
       </label>
+      <Toast message={flash} />
 
       {items.length === 0 ? (
         <p className="muted">אין תמונות לפרויקט הזה</p>
@@ -132,7 +160,7 @@ export default function Gallery({ projectId }) {
               {items
                 .filter((item) => item.phase === option.id)
                 .map((item) => (
-                  <figure key={item.id} className="shot">
+                  <figure key={item.id} className={`shot${justAdded.has(item.id) ? ' new' : ''}`}>
                     {urls[item.path] ? (
                       <a href={urls[item.path]} target="_blank" rel="noopener noreferrer">
                         <img src={urls[item.path]} alt={item.caption || ''} loading="lazy" />

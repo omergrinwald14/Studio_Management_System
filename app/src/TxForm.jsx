@@ -1,8 +1,11 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from './lib/supabase'
 import { todayISO } from './lib/format'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, suggestFrom } from './lib/categories'
 import { uploadReceipt, deleteReceipt, receiptUrl } from './lib/receipts'
+import Suggest from './Suggest'
+import Toast from './Toast'
+import { useFlash } from './lib/useFlash'
 
 const COLUMNS =
   'id, date, description, category, amount, capital, adjust, project_id, project_share, receipt_path'
@@ -23,7 +26,7 @@ export default function TxForm({
   onCancel,
 }) {
   const editing = Boolean(tx)
-  const listId = useId() // unique per instance, so two open forms never share a datalist
+  const [flash, showFlash] = useFlash()
 
   // Direction is a UI choice, not a column: it becomes the sign of `amount`,
   // so the ledger stays one flat list and a total is a sum, not two cases.
@@ -113,14 +116,24 @@ export default function TxForm({
     else {
       if (receiptPath) await deleteReceipt(receiptPath) // replacing, not accumulating
       setReceiptPath(path)
+      showFlash('✓ הקבלה צורפה')
     }
     setUploading(false)
   }
 
   async function openReceipt() {
+    // Safari only allows a new tab straight from the tap. Opened after the
+    // signing request returns, it counts as a pop-up and is silently blocked —
+    // so the tab opens first and is pointed at the link once it exists.
+    const tab = window.open('', '_blank')
     const { url, error } = await receiptUrl(receiptPath)
-    if (error) setError(error)
-    else window.open(url, '_blank', 'noopener')
+    if (error) {
+      tab?.close()
+      setError(error)
+    } else if (tab) {
+      tab.opener = null
+      tab.location.href = url
+    } else window.location.href = url
   }
 
   async function removeReceipt() {
@@ -150,36 +163,26 @@ export default function TxForm({
 
       <label>
         תיאור
-        {/* a datalist is free text and a dropdown at once — he can pick a past
-            entry or type something new, and the new one becomes an option next time */}
-        <input
+        {/* free text and a dropdown at once — he can pick a past entry or type
+            something new, and the new one becomes an option next time */}
+        <Suggest
           value={description}
-          onChange={(e) => handleDescription(e.target.value)}
-          list={`${listId}-desc`}
+          onChange={handleDescription}
+          options={descriptions}
           required
         />
-        <datalist id={`${listId}-desc`}>
-          {descriptions.map((text) => (
-            <option key={text} value={text} />
-          ))}
-        </datalist>
       </label>
 
       <label>
         קטגוריה
-        <input
+        <Suggest
           value={category}
-          onChange={(e) => {
+          onChange={(value) => {
             setCategoryTouched(true)
-            setCategory(e.target.value)
+            setCategory(value)
           }}
-          list={`${listId}-cat`}
+          options={categoryOptions}
         />
-        <datalist id={`${listId}-cat`}>
-          {categoryOptions.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
       </label>
 
       <label>
@@ -245,8 +248,9 @@ export default function TxForm({
           <>
             {/* the bucket is private, so the link has to be signed on demand —
                 there is no permanent URL to have stored alongside the row */}
+            <span className="attached">✓ קבלה מצורפת</span>
             <button type="button" className="ghost" onClick={openReceipt}>
-              צפייה בקבלה
+              צפייה
             </button>
             <button type="button" className="danger" onClick={removeReceipt}>
               הסרה
@@ -262,11 +266,15 @@ export default function TxForm({
               accept="image/*,application/pdf"
               capture="environment"
               disabled={uploading}
-              onChange={(e) => handleReceipt(e.target.files[0])}
+              onChange={(e) => {
+                handleReceipt(e.target.files[0])
+                e.target.value = '' // so choosing the same photo again still fires
+              }}
             />
           </label>
         )}
       </div>
+      <Toast message={flash} />
 
       {error && <p className="error">{error}</p>}
 
