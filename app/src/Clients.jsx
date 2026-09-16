@@ -3,6 +3,8 @@ import { supabase } from './lib/supabase'
 import { formatMoney } from './lib/format'
 import { STAGES } from './lib/stages'
 
+const EMPTY = { name: '', phone: '', address: '' }
+
 // Clients are first-class from day one (D5): contact details in one place, and
 // a card listing every project built for them. Not a CRM — there is nothing
 // here about acquiring anyone, only about the people he already builds for.
@@ -10,7 +12,9 @@ export default function Clients() {
   const [clients, setClients] = useState([])
   const [projects, setProjects] = useState([])
   const [openId, setOpenId] = useState(null)
-  const [adding, setAdding] = useState(false)
+  // One state for both jobs: EMPTY means "new client", a row means "edit that
+  // one". Two separate flags would let the screen contradict itself.
+  const [editing, setEditing] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -29,22 +33,30 @@ export default function Clients() {
     })
   }, [])
 
+  function handleSaved(saved) {
+    setClients(
+      [...clients.filter((c) => c.id !== saved.id), saved].sort((a, b) =>
+        a.name.localeCompare(b.name, 'he'),
+      ),
+    )
+    setEditing(null)
+  }
+
   if (loading) return <p>טוען לקוחות…</p>
 
   return (
     <>
       {error && <p className="error">{error}</p>}
 
-      {adding ? (
+      {editing && !editing.id ? (
         <ClientForm
-          onSaved={(client) => {
-            setClients([...clients, client].sort((a, b) => a.name.localeCompare(b.name, 'he')))
-            setAdding(false)
-          }}
-          onCancel={() => setAdding(false)}
+          client={EMPTY}
+          projectCount={0}
+          onSaved={handleSaved}
+          onCancel={() => setEditing(null)}
         />
       ) : (
-        <button type="button" className="add-toggle" onClick={() => setAdding(true)}>
+        <button type="button" className="add-toggle" onClick={() => setEditing(EMPTY)}>
           + לקוח חדש
         </button>
       )}
@@ -56,6 +68,7 @@ export default function Clients() {
           {clients.map((client) => {
             const mine = projects.filter((project) => project.client_id === client.id)
             const open = openId === client.id
+            const editingThis = editing?.id === client.id
             return (
               <li key={client.id} className="stacked">
                 {/* the row opens the card in place — on a phone that beats
@@ -63,7 +76,10 @@ export default function Clients() {
                 <button
                   type="button"
                   className="row-btn"
-                  onClick={() => setOpenId(open ? null : client.id)}
+                  onClick={() => {
+                    setOpenId(open ? null : client.id)
+                    setEditing(null)
+                  }}
                   aria-expanded={open}
                 >
                   <span className="what">
@@ -74,7 +90,25 @@ export default function Clients() {
                   </span>
                 </button>
 
-                {open && (
+                {open && editingThis && (
+                  // the form replaces the card body instead of opening at the
+                  // top of the screen, so he can still see whom he is editing
+                  <div className="card-body">
+                    <ClientForm
+                      client={client}
+                      projectCount={mine.length}
+                      onSaved={handleSaved}
+                      onDeleted={(id) => {
+                        setClients(clients.filter((c) => c.id !== id))
+                        setEditing(null)
+                        setOpenId(null)
+                      }}
+                      onCancel={() => setEditing(null)}
+                    />
+                  </div>
+                )}
+
+                {open && !editingThis && (
                   <div className="card-body">
                     {client.phone && (
                       // a tel: link so a tap on his phone opens the dialer
@@ -103,6 +137,12 @@ export default function Clients() {
                         ))}
                       </ul>
                     )}
+
+                    <div className="row">
+                      <button type="button" className="ghost" onClick={() => setEditing(client)}>
+                        עריכה
+                      </button>
+                    </div>
                   </div>
                 )}
               </li>
@@ -114,58 +154,88 @@ export default function Clients() {
   )
 }
 
-function ClientForm({ onSaved, onCancel }) {
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
+function ClientForm({ client, projectCount, onSaved, onDeleted, onCancel }) {
+  const editing = Boolean(client.id)
+  const [values, setValues] = useState({ ...EMPTY, ...client })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  function set(field, value) {
+    setValues({ ...values, [field]: value })
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setBusy(true)
     setError('')
-    // .select() after .insert() returns the stored row, so the list shows the
-    // real record with its generated id rather than a local guess.
-    const { data, error } = await supabase
-      .from('clients')
-      .insert({
-        name: name.trim(),
-        phone: phone.trim() || null,
-        address: address.trim() || null,
-      })
-      .select('id, name, phone, address')
-      .single()
 
+    const payload = {
+      name: values.name.trim(),
+      phone: values.phone?.trim() || null,
+      address: values.address?.trim() || null,
+    }
+    // .select() after the write returns the stored row, so the list shows the
+    // record the database actually holds rather than a local guess.
+    const query = editing
+      ? supabase.from('clients').update(payload).eq('id', client.id)
+      : supabase.from('clients').insert(payload)
+
+    const { data, error } = await query.select('id, name, phone, address').single()
     if (error) setError(error.message)
     else onSaved(data)
     setBusy(false)
+  }
+
+  async function handleDelete() {
+    // A project with no client is a job nobody can be billed for, so a client
+    // with work on him cannot be deleted. Refuse here rather than let the
+    // foreign key decide: this way the message says what to do next.
+    if (projectCount > 0) {
+      setError(`ללקוח ${projectCount} פרויקטים. כדי למחוק אותו צריך למחוק אותם קודם.`)
+      return
+    }
+    if (!window.confirm(`למחוק את ${client.name}?`)) return
+    setBusy(true)
+    const { error } = await supabase.from('clients').delete().eq('id', client.id)
+    if (error) {
+      setError(error.message)
+      setBusy(false)
+    } else onDeleted(client.id)
   }
 
   return (
     <form className="add" onSubmit={handleSubmit}>
       <label>
         שם
-        <input value={name} onChange={(e) => setName(e.target.value)} required />
+        <input value={values.name} onChange={(e) => set('name', e.target.value)} required />
       </label>
       <label>
         טלפון
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <input
+          type="tel"
+          value={values.phone ?? ''}
+          onChange={(e) => set('phone', e.target.value)}
+        />
       </label>
       <label>
         כתובת להובלה / התקנה
-        <input value={address} onChange={(e) => setAddress(e.target.value)} />
+        <input value={values.address ?? ''} onChange={(e) => set('address', e.target.value)} />
       </label>
 
       {error && <p className="error">{error}</p>}
 
       <div className="row">
-        <button type="submit" disabled={busy || !name.trim()}>
+        <button type="submit" disabled={busy || !values.name.trim()}>
           {busy ? 'שומר…' : 'שמירה'}
         </button>
         <button type="button" className="ghost" onClick={onCancel}>
           ביטול
         </button>
+        {editing && (
+          <button type="button" className="danger" onClick={handleDelete} disabled={busy}>
+            מחיקה
+          </button>
+        )}
       </div>
     </form>
   )
