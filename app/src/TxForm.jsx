@@ -6,9 +6,7 @@ import { uploadReceipt, deleteReceipt, receiptUrl } from './lib/receipts'
 import Suggest from './Suggest'
 import Toast from './Toast'
 import { useFlash } from './lib/useFlash'
-
-const COLUMNS =
-  'id, date, description, category, amount, capital, adjust, project_id, project_share, receipt_path'
+import { TX_COLUMNS } from './lib/txs'
 
 // One form for both jobs: adding a transaction and editing an existing one.
 // They differ only in which query runs on submit, so keeping them apart would
@@ -84,7 +82,7 @@ export default function TxForm({
       ? supabase.from('txs').update(values).eq('id', tx.id)
       : supabase.from('txs').insert(values)
 
-    const { data, error } = await query.select(COLUMNS).single()
+    const { data, error } = await query.select(TX_COLUMNS).single()
 
     if (error) setError(error.message)
     else onSaved(data)

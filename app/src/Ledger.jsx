@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatMonth, formatDay, formatDate, todayISO } from './lib/format'
 import { cashFlowBreakdown, sum, missingRentDates } from './lib/finance'
+import { TX_COLUMNS } from './lib/txs'
 import { useCached, isCached } from './lib/cache'
 import TxForm from './TxForm'
 
@@ -23,7 +24,7 @@ export default function Ledger() {
     Promise.all([
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+        .select(TX_COLUMNS)
         .order('date', { ascending: false })
         .order('id', { ascending: false }), // tie-break, so same-day rows keep a stable order
       supabase.from('projects').select('id, name').order('id', { ascending: false }),
@@ -110,7 +111,7 @@ export default function Ledger() {
           amount: -Number(settings.rent),
         })),
       )
-      .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+      .select(TX_COLUMNS)
 
     if (error) setError(error.message)
     else setTxs([...data, ...txs].sort(byNewest))

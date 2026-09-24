@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import { useCached, isCached } from './lib/cache'
 import { formatMoney, formatDate, todayISO, endOfMonth, startOfMonth } from './lib/format'
 import { balanceOf, receivablesOf, expectedMovements } from './lib/finance'
+import { TX_COLUMNS } from './lib/txs'
 import { STAGES, DONE } from './lib/stages'
 import WorkshopDays from './WorkshopDays'
 import ShortList from './ShortList'
@@ -34,7 +35,7 @@ export default function Dashboard({ go }) {
         .single(),
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+        .select(TX_COLUMNS)
         .order('date'),
       // a rejected quote's project is kept as history (lost = true) and owes nothing
       supabase.from('projects').select('id, name, client_id, price, due, stage').eq('lost', false),
@@ -121,7 +122,7 @@ export default function Dashboard({ go }) {
         amount: difference,
         adjust: true,
       })
-      .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+      .select(TX_COLUMNS)
       .single()
 
     if (error) setError(error.message)

@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import { formatMoney, formatDate } from './lib/format'
 import { STAGES, DONE } from './lib/stages'
 import { paidOnProject, spentOnProject, projectProfit, overheadPerDay } from './lib/finance'
+import { TX_COLUMNS } from './lib/txs'
 import { remove } from './lib/storage'
 import TxForm from './TxForm'
 import Materials from './Materials'
@@ -26,7 +27,7 @@ export default function ProjectCard({ project: initial, client, onBack, onChange
     Promise.all([
       supabase
         .from('txs')
-        .select('id, date, description, category, amount, capital, adjust, project_id, project_share')
+        .select(TX_COLUMNS)
         .eq('project_id', initial.id)
         .order('date', { ascending: false }),
       supabase.from('settings').select('rent, days_per_month').eq('id', 1).single(),
