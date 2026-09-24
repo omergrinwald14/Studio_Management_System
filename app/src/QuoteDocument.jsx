@@ -216,11 +216,6 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
           )}
           {settings.quote_terms && <p className="doc-note">{settings.quote_terms}</p>}
         </section>
-
-        <section className="doc-sign">
-          <p>חתימת הלקוח: ______________________</p>
-          <p>תאריך: ______________</p>
-        </section>
       </article>
     </>
   )

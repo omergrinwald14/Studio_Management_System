@@ -515,9 +515,6 @@ textarea:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .doc-terms { font-size:13px; margin:18px 0; }
 .doc-terms p { margin:0 0 4px; }
 .doc-note { white-space:pre-wrap; color:var(--ink-2); margin-top:10px; }
-.doc-sign { display:flex; gap:24px; flex-wrap:wrap;
-  margin-top:28px; padding-top:16px; border-top:1px solid var(--ring); font-size:13px; }
-.doc-sign p { margin:0; }
 
 /* ---------- print: the document alone, always on white ----------
    The viewer's dark theme would otherwise produce a dark PDF, so print forces
