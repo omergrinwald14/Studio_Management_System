@@ -15,6 +15,8 @@ const TABLE_NAMES = {
   suppliers: 'ספקים',
   stock: 'שאריות בסדנה',
   workshop_days: 'ימי סדנה',
+  lessons: 'לקחים',
+  media: 'גלריה',
   settings: 'הגדרות',
 }
 

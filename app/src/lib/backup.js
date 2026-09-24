@@ -14,6 +14,10 @@ export const TABLES = [
   'suppliers',
   'stock',
   'workshop_days',
+  'lessons',
+  // the gallery's rows: which photo belongs to which project and phase. The
+  // photos themselves live in Storage and are not part of this file.
+  'media',
 ]
 
 /** Fetch every table, or return the first error. */
