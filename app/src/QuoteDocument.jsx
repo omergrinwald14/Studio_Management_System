@@ -45,10 +45,10 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
     ...items.map((item) => ({
       key: `item${item.id}`,
       label: item.name === 'מתכלים' ? 'חומרים מתכלים' : item.name,
-      detail:
-        item.name === 'מתכלים'
-          ? 'שיוף, דבקים, גימור וכלי עבודה מתכלים'
-          : `${item.qty} קו"ב`,
+      // the client is buying a finished piece, not wood by volume — the
+      // quantity stays in the builder for his own costing, and only the price
+      // comes through here
+      detail: item.name === 'מתכלים' ? 'שיוף, דבקים, גימור וכלי עבודה מתכלים' : null,
       cost: Number(item.qty) * Number(item.unit_cost),
       discountPercent: quote.materials_discount,
     })),
@@ -65,7 +65,7 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
     {
       key: 'overhead',
       label: 'תפעול הנגריה',
-      detail: `${quote.planned_days} ימי סדנה`,
+      detail: `עלות תפעול ${quote.planned_days} ימי עבודה`,
       cost: Number(quote.planned_days) * Number(quote.overhead_day),
       discountPercent: quote.overhead_discount,
     },
@@ -180,7 +180,7 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
             ))}
             {adjustment !== 0 && (
               <tr>
-                <td>התאמת מחיר</td>
+                <td>עיגול</td>
                 <td className="num">{formatMoney(adjustment)}</td>
               </tr>
             )}
