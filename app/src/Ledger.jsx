@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatMonth, formatDay, formatDate, todayISO } from './lib/format'
 import { cashFlowBreakdown, sum, missingRentDates } from './lib/finance'
-import { TX_COLUMNS } from './lib/txs'
+import { TX_COLUMNS, groupByMonth } from './lib/txs'
 import { useCached, isCached } from './lib/cache'
 import TxForm from './TxForm'
 
@@ -267,16 +267,4 @@ function byNewest(a, b) {
 // neither income nor expense, so including it would make the month lie.
 function subtotal(rows) {
   return sum(rows.filter((tx) => !tx.adjust))
-}
-
-// [['2026-09', [...]], ['2026-08', [...]]] — already in date order, since the
-// rows arrive sorted and a Map keeps insertion order.
-function groupByMonth(rows) {
-  const months = new Map()
-  for (const tx of rows) {
-    const key = tx.date.slice(0, 7)
-    if (!months.has(key)) months.set(key, [])
-    months.get(key).push(tx)
-  }
-  return [...months]
 }

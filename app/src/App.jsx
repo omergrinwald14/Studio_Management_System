@@ -6,6 +6,7 @@ import Ledger from './Ledger'
 import Projects from './Projects'
 import Clients from './Clients'
 import Quotes from './Quotes'
+import Receipts from './Receipts'
 import Suppliers from './Suppliers'
 import Lessons from './Lessons'
 import Search from './Search'
@@ -27,6 +28,7 @@ const SCREENS = {
   projects: { title: 'פרויקטים', tab: true, render: (go, arg) => <Projects openId={arg} /> },
   more: { title: 'עוד', tab: true, render: (go) => <More go={go} /> },
   quotes: { title: 'הצעות מחיר', parent: 'more', render: () => <Quotes /> },
+  receipts: { title: 'קבלות', parent: 'more', render: () => <Receipts /> },
   stock: { title: 'שאריות בסדנה', parent: 'more', render: () => <Stock /> },
   clients: { title: 'לקוחות', parent: 'more', render: () => <Clients /> },
   suppliers: { title: 'ספקים', parent: 'more', render: () => <Suppliers /> },
