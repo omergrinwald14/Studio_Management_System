@@ -77,8 +77,6 @@ export default function QuoteBuilder({
     quote ? String(quote.deposit_percent) : '0',
   )
 
-  const [price, setPrice] = useState(quote ? String(quote.price) : '')
-  const [priceTouched, setPriceTouched] = useState(editing)
   const [due, setDue] = useState(project && project.due ? project.due : '')
   const [decisionDue, setDecisionDue] = useState(quote && quote.decision_due ? quote.decision_due : '')
   const [error, setError] = useState('')
@@ -99,14 +97,24 @@ export default function QuoteBuilder({
 
   // Each component is marked up and then discounted on its own — the lever for
   // shaving one line, usually labour, without touching what the rest actually
-  // costs him. The sum is the suggestion; the price field below can override it.
+  // costs him. The sum is the suggestion; the rounding below moves it.
   const priced = {
     materials: componentPrice(cost.materials, markup, materialsDiscount),
     labour: componentPrice(cost.labour, markup, labourDiscount),
     overhead: componentPrice(cost.overhead, markup, overheadDiscount),
   }
   const suggestion = priced.materials + priced.labour + priced.overhead
-  const finalPrice = priceTouched && price !== '' ? Number(price) : suggestion
+
+  // The price is always the calculation plus a rounding he types. It used to be
+  // a figure typed over the calculation, which froze the price the moment he
+  // touched it, so discounts stopped moving it. A saved quote's rounding is
+  // recovered as whatever separated its price from the calculation, so reopening
+  // it shows the price he sent. Declared here, not with the other state, because
+  // its first value needs the suggestion; hooks only need a stable order.
+  const [rounding, setRounding] = useState(() =>
+    quote ? String(Number(quote.price) - suggestion) : '0',
+  )
+  const finalPrice = suggestion + (Number(rounding) || 0)
   const belowCost = finalPrice < cost.total
 
   // A species he has quoted before already carries an answer to "how much per
@@ -479,17 +487,10 @@ export default function QuoteBuilder({
       </div>
 
       <label>
-        מחיר ללקוח
-        <input
-          type="number"
-          inputMode="decimal"
-          min="0"
-          value={priceTouched ? price : suggestion}
-          onChange={(e) => {
-            setPriceTouched(true)
-            setPrice(e.target.value)
-          }}
-        />
+        עיגול (₪) — פלוס או מינוס על המחיר המחושב
+        {/* no inputMode: the iPhone's decimal pad has no minus key, and
+            rounding down is the usual direction */}
+        <input type="number" value={rounding} onChange={(e) => setRounding(e.target.value)} />
       </label>
 
       {belowCost && (
@@ -537,6 +538,13 @@ export default function QuoteBuilder({
             onChange={(e) => setDecisionDue(e.target.value)}
           />
         </label>
+      </div>
+
+      {/* pinned above the tab bar, so the price stays in sight while he
+          scrolls the levers above that move it */}
+      <div className={`price-bar${belowCost ? ' loss' : ''}`}>
+        <span>מחיר ללקוח</span>
+        <span className="num">{formatMoney(finalPrice)}</span>
       </div>
 
       {error && <p className="error">{error}</p>}

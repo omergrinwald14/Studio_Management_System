@@ -470,6 +470,14 @@ button.wide { width:100%; }
 .tag.bad { color:var(--neg); border-color:currentColor; }
 .total .num { font-weight:600; }
 
+/* The quote builder's price, stuck just above the fixed tab bar (61px: 44px
+   button, 8px padding each side, 1px border) while the form scrolls under it. */
+.price-bar { position:sticky; bottom:calc(69px + env(safe-area-inset-bottom)); z-index:10;
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:12px 16px; border-radius:12px; font-size:16px; font-weight:650;
+  background:var(--surface); border:1px solid var(--ring); box-shadow:var(--shadow); }
+.price-bar.loss .num { color:var(--neg); }
+
 .search { margin-bottom:14px; }
 .search input { direction:rtl; text-align:right; }
 
