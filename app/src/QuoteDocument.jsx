@@ -14,20 +14,27 @@ import { componentPrice } from './lib/finance'
 // and a discount is worth nothing if the client cannot see it was given.
 export default function QuoteDocument({ quote, project, client, settings, onBack }) {
   const [items, setItems] = useState([])
+  const [extras, setExtras] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase
-      .from('quote_items')
-      .select('id, name, qty, unit_cost')
-      .eq('quote_id', quote.id)
-      .order('id')
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setItems(data)
-        setLoading(false)
-      })
+    Promise.all([
+      supabase
+        .from('quote_items')
+        .select('id, name, qty, unit_cost')
+        .eq('quote_id', quote.id)
+        .order('id'),
+      supabase.from('quote_extras').select('id, name, amount').eq('quote_id', quote.id).order('id'),
+    ]).then(([itemsResult, extrasResult]) => {
+      const failure = itemsResult.error || extrasResult.error
+      if (failure) setError(failure.message)
+      else {
+        setItems(itemsResult.data)
+        setExtras(extrasResult.data)
+      }
+      setLoading(false)
+    })
   }, [quote.id])
 
   if (loading) return <p>טוען…</p>
@@ -75,6 +82,18 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
       const after = componentPrice(line.cost, markup, line.discountPercent)
       return { ...line, before, after, discount: before - after }
     })
+    // extras (הובלה, התקנה) are charged at the figure he typed: no markup, no
+    // discount, so what he wrote is what the client reads
+    .concat(
+      extras.map((extra) => ({
+        key: `extra${extra.id}`,
+        label: extra.name,
+        detail: null,
+        before: Number(extra.amount),
+        after: Number(extra.amount),
+        discount: 0,
+      })),
+    )
     .filter((line) => line.before > 0)
 
   const beforeDiscount = lines.reduce((total, line) => total + line.before, 0)

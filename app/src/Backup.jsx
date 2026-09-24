@@ -10,6 +10,7 @@ const TABLE_NAMES = {
   clients: 'לקוחות',
   quotes: 'הצעות מחיר',
   quote_items: 'שורות בהצעות',
+  quote_extras: 'תוספות בהצעות',
   materials: 'חומרים',
   suppliers: 'ספקים',
   stock: 'שאריות בסדנה',

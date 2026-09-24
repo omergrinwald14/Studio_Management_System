@@ -478,6 +478,10 @@ button.wide { width:100%; }
   background:var(--surface); border:1px solid var(--ring); box-shadow:var(--shadow); }
 .price-bar.loss .num { color:var(--neg); }
 
+/* an extra on a quote: a wide name, a narrow amount, and the ✕ at its own size */
+.extra-row > label:first-child { flex:2 1 0; }
+.extra-row > button { flex:none; }
+
 .search { margin-bottom:14px; }
 .search input { direction:rtl; text-align:right; }
 

@@ -7,6 +7,11 @@ import { QUOTE_STAGE } from './lib/stages'
 
 const DEFAULT_CONSUMABLES = 150
 
+// React needs a key that survives a row being removed from the middle; the
+// index would hand one row's half-typed name to its neighbour.
+let extraKey = 0
+const extraRow = (name = '', amount = '') => ({ key: extraKey++, name, amount })
+
 // The quote builder costs the job before it prices it. That order is the whole
 // point: his spreadsheet priced from feel, and the bench that started this
 // project sold for less than the wood, the consumables and the rent it used.
@@ -25,9 +30,11 @@ export default function QuoteBuilder({
   settings,
   woodSpecies = [],
   woodPriceRecall = {},
+  extraNames = [], // every extra he has charged before, as suggestions
   quote = null, // the quote being edited, if any
   project = null, // its project, so the name and dates can be edited too
   editItems = [], // its saved lines
+  editExtras = [], // its saved extras
   onSaved,
   onClientAdded,
   onCancel,
@@ -76,6 +83,9 @@ export default function QuoteBuilder({
   const [depositPercent, setDepositPercent] = useState(
     quote ? String(quote.deposit_percent) : '0',
   )
+  const [extras, setExtras] = useState(() =>
+    editExtras.map((extra) => extraRow(extra.name, String(extra.amount))),
+  )
 
   const [due, setDue] = useState(project && project.due ? project.due : '')
   const [decisionDue, setDecisionDue] = useState(quote && quote.decision_due ? quote.decision_due : '')
@@ -103,7 +113,10 @@ export default function QuoteBuilder({
     labour: componentPrice(cost.labour, markup, labourDiscount),
     overhead: componentPrice(cost.overhead, markup, overheadDiscount),
   }
-  const suggestion = priced.materials + priced.labour + priced.overhead
+  // Extras (הובלה, התקנה) go on at the figure he types, with no markup and no
+  // discount: he prices them to the client directly rather than costing them.
+  const extrasTotal = extras.reduce((total, extra) => total + (Number(extra.amount) || 0), 0)
+  const suggestion = priced.materials + priced.labour + priced.overhead + extrasTotal
 
   // The price is always the calculation plus a rounding he types. It used to be
   // a figure typed over the calculation, which froze the price the moment he
@@ -115,7 +128,16 @@ export default function QuoteBuilder({
     quote ? String(Number(quote.price) - suggestion) : '0',
   )
   const finalPrice = suggestion + (Number(rounding) || 0)
-  const belowCost = finalPrice < cost.total
+  // judged on the job without its extras, so a delivery charge cannot hide an
+  // underpriced piece
+  const loss = cost.total - (finalPrice - extrasTotal)
+  const belowCost = loss > 0
+
+  function setExtra(key, field, value) {
+    setExtras((current) =>
+      current.map((extra) => (extra.key === key ? { ...extra, [field]: value } : extra)),
+    )
+  }
 
   // A species he has quoted before already carries an answer to "how much per
   // קוב?" — reuse it instead of asking the same question twice.
@@ -230,6 +252,33 @@ export default function QuoteBuilder({
       savedItems = itemsData
     }
 
+    // Replaced wholesale for the same reason as the lines above.
+    if (editing) {
+      const { error: clearError } = await supabase
+        .from('quote_extras')
+        .delete()
+        .eq('quote_id', savedQuote.id)
+      if (clearError) return fail(clearError)
+    }
+
+    const extraLines = extras
+      .filter((extra) => extra.name.trim())
+      .map((extra) => ({
+        quote_id: savedQuote.id,
+        name: extra.name.trim(),
+        amount: Number(extra.amount) || 0,
+      }))
+
+    let savedExtras = []
+    if (extraLines.length) {
+      const { data: extrasData, error: extrasError } = await supabase
+        .from('quote_extras')
+        .insert(extraLines)
+        .select('*')
+      if (extrasError) return fail(extrasError)
+      savedExtras = extrasData
+    }
+
     setBusy(false)
     // only the wood line feeds next time's species suggestions — מתכלים is not
     // a species, and Quotes.jsx already excludes it from what it fetches
@@ -237,6 +286,7 @@ export default function QuoteBuilder({
       ...savedQuote,
       project: savedProject,
       items: savedItems.filter((item) => item.name !== 'מתכלים'),
+      extras: savedExtras,
     })
 
     function fail(failure) {
@@ -486,6 +536,44 @@ export default function QuoteBuilder({
         </dl>
       </div>
 
+      <div className="items">
+        <p className="menu-label">תוספות ללקוח — הובלה, התקנה ועוד</p>
+        {extras.map((extra) => (
+          <div className="row extra-row" key={extra.key}>
+            <label>
+              שם
+              <Suggest
+                value={extra.name}
+                onChange={(value) => setExtra(extra.key, 'name', value)}
+                options={extraNames}
+                required
+              />
+            </label>
+            <label>
+              סכום (₪)
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={extra.amount}
+                onChange={(e) => setExtra(extra.key, 'amount', e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="danger"
+              aria-label="הסרת התוספת"
+              onClick={() => setExtras(extras.filter((other) => other.key !== extra.key))}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button type="button" className="ghost" onClick={() => setExtras([...extras, extraRow()])}>
+          + הוספת תוספת
+        </button>
+      </div>
+
       <label>
         עיגול (₪) — פלוס או מינוס על המחיר המחושב
         {/* no inputMode: the iPhone's decimal pad has no minus key, and
@@ -496,7 +584,7 @@ export default function QuoteBuilder({
       {belowCost && (
         <p className="warn small">
           המחיר נמוך מהעלות — הפסד של{' '}
-          <span className="num">{formatMoney(cost.total - finalPrice)}</span>
+          <span className="num">{formatMoney(loss)}</span>
         </p>
       )}
 

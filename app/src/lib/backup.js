@@ -9,6 +9,7 @@ export const TABLES = [
   'txs',
   'quotes',
   'quote_items',
+  'quote_extras',
   'materials',
   'suppliers',
   'stock',

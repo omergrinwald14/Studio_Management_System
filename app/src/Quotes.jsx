@@ -15,9 +15,11 @@ export default function Quotes() {
   const [clients, setClients] = useState([])
   const [settings, setSettings] = useState(null)
   const [woodItems, setWoodItems] = useState([])
+  const [extraItems, setExtraItems] = useState([])
   const [building, setBuilding] = useState(false)
   const [editing, setEditing] = useState(null) // the quote being edited, if any
   const [editingItems, setEditingItems] = useState([])
+  const [editingExtras, setEditingExtras] = useState([])
   const [showing, setShowing] = useState(null) // the quote being shown as a document
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -42,23 +44,28 @@ export default function Quotes() {
         .select('name, unit_cost')
         .neq('name', 'מתכלים')
         .order('id', { ascending: false }),
-    ]).then(([quotesResult, projectsResult, clientsResult, settingsResult, itemsResult]) => {
-      const failure =
-        quotesResult.error ||
-        projectsResult.error ||
-        clientsResult.error ||
-        settingsResult.error ||
-        itemsResult.error
-      if (failure) setError(failure.message)
-      else {
-        setQuotes(quotesResult.data)
-        setProjects(projectsResult.data)
-        setClients(clientsResult.data)
-        setSettings(settingsResult.data)
-        setWoodItems(itemsResult.data)
-      }
-      setLoading(false)
-    })
+      supabase.from('quote_extras').select('name'),
+    ]).then(
+      ([quotesResult, projectsResult, clientsResult, settingsResult, itemsResult, extrasResult]) => {
+        const failure =
+          quotesResult.error ||
+          projectsResult.error ||
+          clientsResult.error ||
+          settingsResult.error ||
+          itemsResult.error ||
+          extrasResult.error
+        if (failure) setError(failure.message)
+        else {
+          setQuotes(quotesResult.data)
+          setProjects(projectsResult.data)
+          setClients(clientsResult.data)
+          setSettings(settingsResult.data)
+          setWoodItems(itemsResult.data)
+          setExtraItems(extrasResult.data)
+        }
+        setLoading(false)
+      },
+    )
   }, [])
 
   // Every wood species he has ever priced becomes a suggestion; the price he
@@ -71,6 +78,12 @@ export default function Quotes() {
     if (!(item.name in woodPriceRecall)) woodPriceRecall[item.name] = item.unit_cost
   }
 
+  // Names only, no recalled amount: what delivery costs depends on where the
+  // client lives, so last time's figure would be a guess dressed up as a fact.
+  const extraNames = [...new Set(extraItems.map((extra) => extra.name))].sort((a, b) =>
+    a.localeCompare(b, 'he'),
+  )
+
   function projectOf(quote) {
     return projects.find((project) => project.id === quote.project_id)
   }
@@ -79,14 +92,19 @@ export default function Quotes() {
   // would appear empty and a save would wipe what is actually stored.
   async function editQuote(quote) {
     setError('')
-    const { data, error } = await supabase
-      .from('quote_items')
-      .select('id, name, qty, unit_cost')
-      .eq('quote_id', quote.id)
-      .order('id')
+    const [itemsResult, extrasResult] = await Promise.all([
+      supabase
+        .from('quote_items')
+        .select('id, name, qty, unit_cost')
+        .eq('quote_id', quote.id)
+        .order('id'),
+      supabase.from('quote_extras').select('id, name, amount').eq('quote_id', quote.id).order('id'),
+    ])
 
-    if (error) return setError(error.message)
-    setEditingItems(data)
+    const failure = itemsResult.error || extrasResult.error
+    if (failure) return setError(failure.message)
+    setEditingItems(itemsResult.data)
+    setEditingExtras(extrasResult.data)
     setEditing(quote)
     setBuilding(true)
   }
@@ -95,6 +113,7 @@ export default function Quotes() {
     setBuilding(false)
     setEditing(null)
     setEditingItems([])
+    setEditingExtras([])
   }
 
   function clientNameOf(project) {
@@ -167,14 +186,17 @@ export default function Quotes() {
           settings={settings}
           woodSpecies={woodSpecies}
           woodPriceRecall={woodPriceRecall}
+          extraNames={extraNames}
           quote={editing}
           project={editing ? projectOf(editing) : null}
           editItems={editingItems}
-          onSaved={({ project, items, ...quote }) => {
+          editExtras={editingExtras}
+          onSaved={({ project, items, extras, ...quote }) => {
             // an edited quote replaces its old row; a new one goes on top
             setQuotes([quote, ...quotes.filter((q) => q.id !== quote.id)])
             setProjects([project, ...projects.filter((p) => p.id !== project.id)])
             setWoodItems([...items, ...woodItems])
+            setExtraItems([...extras, ...extraItems])
             closeBuilder()
           }}
           onClientAdded={(client) => setClients([...clients, client])}
