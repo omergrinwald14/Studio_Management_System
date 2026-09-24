@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Suggest from './Suggest'
 import { supabase } from './lib/supabase'
 import { formatMoney, todayISO } from './lib/format'
-import { quoteCost, componentPrice, overheadPerDay } from './lib/finance'
+import { quoteCost, componentPrice, overheadPerDay, quoteDeposit } from './lib/finance'
 import { QUOTE_STAGE } from './lib/stages'
 
 const DEFAULT_CONSUMABLES = 150
@@ -80,9 +80,11 @@ export default function QuoteBuilder({
   const [overheadDiscount, setOverheadDiscount] = useState(
     quote ? String(quote.overhead_discount) : '0',
   )
+  const [depositMode, setDepositMode] = useState(quote ? quote.deposit_mode : 'percent') // 'percent' | 'amount'
   const [depositPercent, setDepositPercent] = useState(
     quote ? String(quote.deposit_percent) : '0',
   )
+  const [depositAmount, setDepositAmount] = useState(quote ? String(quote.deposit_amount) : '0')
   const [extras, setExtras] = useState(() =>
     editExtras.map((extra) => extraRow(extra.name, String(extra.amount))),
   )
@@ -132,6 +134,13 @@ export default function QuoteBuilder({
   // underpriced piece
   const loss = cost.total - (finalPrice - extrasTotal)
   const belowCost = loss > 0
+
+  const deposit = quoteDeposit({
+    price: finalPrice,
+    mode: depositMode,
+    percent: depositPercent,
+    amount: depositAmount,
+  })
 
   function setExtra(key, field, value) {
     setExtras((current) =>
@@ -205,7 +214,11 @@ export default function QuoteBuilder({
       materials_discount: Number(materialsDiscount) || 0,
       labour_discount: Number(labourDiscount) || 0,
       overhead_discount: Number(overheadDiscount) || 0,
-      deposit_percent: Number(depositPercent) || 0,
+      // like labour: only the chosen mode's figure is kept, so a stale number
+      // in the other field cannot resurface later
+      deposit_mode: depositMode,
+      deposit_percent: depositMode === 'percent' ? Number(depositPercent) || 0 : 0,
+      deposit_amount: depositMode === 'amount' ? Number(depositAmount) || 0 : 0,
       price: finalPrice,
       decision_due: decisionDue || null,
     }
@@ -588,30 +601,64 @@ export default function QuoteBuilder({
         </p>
       )}
 
-      <label>
-        מקדמה (% מהמחיר)
-        <input
-          type="number"
-          inputMode="decimal"
-          min="0"
-          max="100"
-          value={depositPercent}
-          onChange={(e) => setDepositPercent(e.target.value)}
-        />
-      </label>
-      {Number(depositPercent) > 0 && (
-        // kept as a percentage so it follows the price, but he is quoting a
-        // shekel figure to a client, so show him the figure
-        <p className="note">
-          מקדמה: <span className="num">{formatMoney(Math.round((finalPrice * Number(depositPercent)) / 100))}</span>
-          <span className="muted">
-            {' · '}היתרה במסירה:{' '}
-            <span className="num">
-              {formatMoney(finalPrice - Math.round((finalPrice * Number(depositPercent)) / 100))}
-            </span>
-          </span>
-        </p>
-      )}
+      <div className="items">
+        <p className="menu-label">מקדמה</p>
+        <div className="chips">
+          <button
+            type="button"
+            className={`chip${depositMode === 'percent' ? ' on' : ''}`}
+            onClick={() => setDepositMode('percent')}
+          >
+            באחוזים מהמחיר
+          </button>
+          <button
+            type="button"
+            className={`chip${depositMode === 'amount' ? ' on' : ''}`}
+            onClick={() => setDepositMode('amount')}
+          >
+            סכום בשקלים
+          </button>
+        </div>
+
+        {depositMode === 'percent' ? (
+          <label>
+            מקדמה (% מהמחיר)
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="100"
+              value={depositPercent}
+              onChange={(e) => setDepositPercent(e.target.value)}
+            />
+          </label>
+        ) : (
+          <label>
+            מקדמה (₪)
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+            />
+          </label>
+        )}
+
+        {deposit > finalPrice ? (
+          <p className="warn small">המקדמה גבוהה מהמחיר ללקוח</p>
+        ) : (
+          deposit > 0 && (
+            // either way he is quoting shekels to a client, so show the figures
+            <p className="note">
+              מקדמה: <span className="num">{formatMoney(deposit)}</span>
+              <span className="muted">
+                {' · '}היתרה במסירה: <span className="num">{formatMoney(finalPrice - deposit)}</span>
+              </span>
+            </p>
+          )
+        )}
+      </div>
 
       <div className="row">
         <label>

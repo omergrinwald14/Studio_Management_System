@@ -177,6 +177,17 @@ export function componentPrice(cost, markup, discountPercent = 0) {
 }
 
 /**
+ * The deposit on a quote, in shekels: either a share of the price, which
+ * follows the price when he edits it, or a fixed figure he told the client.
+ * The builder and the client's document both read it from here, so the two
+ * cannot quote different deposits.
+ */
+export function quoteDeposit({ price, mode, percent, amount }) {
+  if (mode === 'amount') return Number(amount) || 0
+  return Math.round((Number(price) * (Number(percent) || 0)) / 100)
+}
+
+/**
  * Every rent day from the opening date through today, inclusive.
  *
  * The opening date is the right anchor rather than the day the business opened:

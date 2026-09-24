@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { formatMoney, formatDate } from './lib/format'
-import { componentPrice } from './lib/finance'
+import { componentPrice, quoteDeposit } from './lib/finance'
 
 // The quote as the client sees it — the only screen in the system written for
 // someone other than him.
@@ -104,7 +104,12 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
   // honest instead of quietly presenting numbers that do not sum.
   const adjustment = Number(quote.price) - afterDiscount
 
-  const deposit = Math.round((Number(quote.price) * Number(quote.deposit_percent || 0)) / 100)
+  const deposit = quoteDeposit({
+    price: quote.price,
+    mode: quote.deposit_mode,
+    percent: quote.deposit_percent,
+    amount: quote.deposit_amount,
+  })
 
   return (
     <>
@@ -210,7 +215,10 @@ export default function QuoteDocument({ quote, project, client, settings, onBack
             {deposit > 0 && (
               <>
                 <tr>
-                  <td>מקדמה לתשלום עם אישור ההצעה ({quote.deposit_percent}%)</td>
+                  <td>
+                    מקדמה לתשלום עם אישור ההצעה
+                    {quote.deposit_mode !== 'amount' && ` (${quote.deposit_percent}%)`}
+                  </td>
                   <td className="num">{formatMoney(deposit)}</td>
                 </tr>
                 <tr>

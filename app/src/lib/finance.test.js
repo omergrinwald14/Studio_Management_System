@@ -12,6 +12,7 @@ import {
   quoteCost,
   suggestedPrice,
   componentPrice,
+  quoteDeposit,
   spentOnProject,
   rentDatesDue,
   missingRentDates,
@@ -191,6 +192,16 @@ test('a component price is marked up, then discounted on its own', () => {
   assert.equal(componentPrice(1000, 25, 20), 1000)
   assert.equal(componentPrice(1000, 25), 1250, 'no discount leaves the markup untouched')
   assert.equal(componentPrice(1000, 0, 50), 500, 'a discount with no markup is a plain half-price')
+})
+
+test('a deposit is a share of the price, or a fixed figure', () => {
+  assert.equal(quoteDeposit({ price: 3985, mode: 'percent', percent: 30 }), 1196, 'rounded to the shekel')
+  assert.equal(
+    quoteDeposit({ price: 3985, mode: 'amount', percent: 30, amount: 1500 }),
+    1500,
+    'a fixed figure ignores the price and any leftover percentage',
+  )
+  assert.equal(quoteDeposit({ price: 3985, mode: 'percent', percent: '' }), 0, 'an empty field is no deposit')
 })
 
 test('a part-attributed purchase costs the project only its share', () => {
